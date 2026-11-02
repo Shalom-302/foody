@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { FoodyButton } from "@/components/foody/button";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
 import { cn } from "@/lib/utils/cn";
+import { BRAND } from "@/lib/brand";
 
 const ObjectUniverse = dynamic(() => import("@/components/3d/object-universe"), { ssr: false });
 
@@ -71,7 +72,7 @@ export function HeroUniverse() {
 
     const intro = (
         <div className="max-w-3xl">
-            <p data-intro className="text-xs font-semibold tracking-[0.3em] text-cocoa/70 uppercase">FOODY Miniardise · Abidjan</p>
+            <p data-intro className="text-xs font-semibold tracking-[0.3em] text-cocoa/70 uppercase">{BRAND.full} · Abidjan</p>
             <h1 className="mt-5 text-[2.6rem] leading-[1.02] font-bold tracking-tight text-cocoa sm:text-6xl lg:text-7xl">
                 <span data-intro className="block">Une petite douceur</span>
                 <span data-intro className="block">pour illuminer</span>

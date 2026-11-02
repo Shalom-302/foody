@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { FoodyButton } from "@/components/foody/button";
@@ -26,6 +26,24 @@ export default function AdminTeamPage() {
         queryKey: ["admin-customers", query],
         queryFn: () => adminApi.customers(query),
         placeholderData: keepPreviousData,
+    });
+
+    const refreshList = () => queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
+    const block = useMutation({
+        mutationFn: (c: Customer) => adminApi.setCustomerStatus(c.id, !c.status),
+        onSuccess: (c) => {
+            refreshList();
+            toast.success(c.status ? `${c.pseudo ?? formatPhone(c.phone)} est débloqué` : `${c.pseudo ?? formatPhone(c.phone)} est bloqué et déconnecté`);
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+    });
+    const remove = useMutation({
+        mutationFn: (c: Customer) => adminApi.deleteCustomer(c.id),
+        onSuccess: () => {
+            refreshList();
+            toast.success("Compte supprimé (ses commandes sont conservées)");
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
     });
 
     const toggle = useMutation({
@@ -64,7 +82,7 @@ export default function AdminTeamPage() {
 
             <div className="mt-5 overflow-hidden rounded-3xl bg-white shadow-soft">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-left text-sm">
+                    <table className="w-full min-w-[820px] text-left text-sm">
                         <thead className="bg-honey text-xs tracking-wide text-cocoa/70 uppercase">
                             <tr>
                                 <th className="px-4 py-3 font-semibold">Client</th>
@@ -86,7 +104,9 @@ export default function AdminTeamPage() {
                                         <td className="px-4 py-3 tabular-nums">{formatPhone(c.phone)}</td>
                                         <td className="px-4 py-3 text-mist">{c.join_time ? formatDate(c.join_time) : "—"}</td>
                                         <td className="px-4 py-3">
-                                            {c.is_admin ? (
+                                            {!c.status ? (
+                                                <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Bloqué</span>
+                                            ) : c.is_admin ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-sun px-2.5 py-1 text-xs font-semibold"><ShieldCheck className="size-3.5" /> Admin</span>
                                             ) : (
                                                 <span className="text-xs text-mist">Client</span>
@@ -96,6 +116,7 @@ export default function AdminTeamPage() {
                                             {isMe ? (
                                                 <span className="text-xs text-mist">C&apos;est vous</span>
                                             ) : (
+                                                <div className="flex justify-end gap-2">
                                                 <FoodyButton
                                                     size="sm"
                                                     variant={c.is_admin ? "danger" : "outline"}
@@ -108,6 +129,27 @@ export default function AdminTeamPage() {
                                                 >
                                                     {c.is_admin ? "Retirer l'accès admin" : "Rendre admin"}
                                                 </FoodyButton>
+                                                <FoodyButton
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={block.isPending}
+                                                    onClick={() => {
+                                                        if (c.status && !window.confirm(`Bloquer ${c.pseudo ?? formatPhone(c.phone)} ? Il sera déconnecté et ne pourra plus commander.`)) return;
+                                                        block.mutate(c);
+                                                    }}
+                                                >
+                                                    {c.status ? "Bloquer" : "Débloquer"}
+                                                </FoodyButton>
+                                                <FoodyButton
+                                                    size="sm"
+                                                    variant="danger"
+                                                    aria-label="Supprimer le compte"
+                                                    disabled={remove.isPending}
+                                                    onClick={() => window.confirm(`Supprimer le compte de ${c.pseudo ?? formatPhone(c.phone)} ? Ses commandes passées sont conservées.`) && remove.mutate(c)}
+                                                >
+                                                    <Trash2 />
+                                                </FoodyButton>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

@@ -1,3 +1,5 @@
+from sqlalchemy import func, select
+
 from backend.app.client.schema.catalog import (
     CreateCategoryParam,
     CreateProductParam,
@@ -47,6 +49,18 @@ class CatalogService:
             await db.flush()
             await db.refresh(category)
             return category
+
+    @staticmethod
+    async def delete_category(*, pk: int) -> None:
+        async with async_db_session.begin() as db:
+            category = await category_dao.select_model(db, pk)
+            if not category:
+                raise errors.NotFoundError(msg='Catégorie introuvable.')
+            count = await db.scalar(select(func.count(Product.id)).where(Product.category_id == pk))
+            if count:
+                raise errors.ForbiddenError(
+                    msg=f"Cette catégorie contient encore {count} produit(s) : déplacez-les ou supprimez-les d'abord.")
+            await db.delete(category)
 
     # --- Products ---------------------------------------------------------
 

@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request
 from fastapi_limiter.depends import RateLimiter
 
 from backend.app.client.schema.order import CreateOrderParam, GetOrderDetail
+from backend.app.client.service.notify_service import notify_service
 from backend.app.client.service.order_service import order_service
 from backend.common.pagination import DependsPagination, paging_data
 from backend.common.response.response_schema import ResponseModel, response_base
@@ -16,7 +17,7 @@ router = APIRouter(prefix='/orders', tags=['Orders'])
 
 @router.get('/delivery-options', summary='Communes, delivery fee and payment methods')
 async def delivery_options(request: Request) -> ResponseModel:
-    return response_base.success(request=request, data=order_service.delivery_options())
+    return response_base.success(request=request, data=await order_service.delivery_options())
 
 
 @router.post(
@@ -24,8 +25,9 @@ async def delivery_options(request: Request) -> ResponseModel:
     summary='Place an order (prices and stock are checked server-side)',
     dependencies=[DependsJwtAuth, Depends(RateLimiter(times=10, minutes=10))],
 )
-async def create_order(request: Request, obj: CreateOrderParam) -> ResponseModel:
+async def create_order(request: Request, obj: CreateOrderParam, background_tasks: BackgroundTasks) -> ResponseModel:
     order = await order_service.create(user_id=request.user.id, user_phone=request.user.phone, obj=obj)
+    background_tasks.add_task(notify_service.new_order, order.id)  # WhatsApp: admins + customer
     return response_base.success(request=request, data=GetOrderDetail.model_validate(order))
 
 

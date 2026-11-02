@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FoodyButton } from "@/components/foody/button";
 import { OrderStatusBadge } from "@/components/orders/order-status";
@@ -19,10 +19,12 @@ import {
 } from "@/lib/format";
 import { adminApi } from "@/services/foody";
 import type { OrderStatus, PaymentStatus } from "@/types/foody";
+import { BRAND } from "@/lib/brand";
 
 export default function AdminOrderPage() {
     const { id } = useParams<{ id: string }>();
     const queryClient = useQueryClient();
+    const router = useRouter();
     const { data: order, isLoading } = useQuery({ queryKey: ["admin-order", id], queryFn: () => adminApi.order(Number(id)) });
 
     const update = useMutation({
@@ -37,10 +39,21 @@ export default function AdminOrderPage() {
         onError: (e) => toast.error(apiErrorMessage(e)),
     });
 
+    const remove = useMutation({
+        mutationFn: () => adminApi.deleteOrder(Number(id)),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+            toast.success("Commande supprimée");
+            router.replace("/admin/commandes");
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
+    });
+
     if (isLoading || !order) return <div className="h-64 animate-pulse rounded-3xl bg-honey" />;
 
     const next = ORDER_NEXT_STATUSES[order.status];
-    const wa = `https://wa.me/${order.customer_phone}?text=${encodeURIComponent(`Bonjour ${order.customer_name}, ici FOODY Miniardise à propos de votre commande ${order.order_number}.`)}`;
+    const wa = `https://wa.me/${order.customer_phone}?text=${encodeURIComponent(`Bonjour ${order.customer_name}, ici ${BRAND.full} à propos de votre commande ${order.order_number}.`)}`;
 
     return (
         <div className="max-w-4xl">
@@ -52,7 +65,14 @@ export default function AdminOrderPage() {
                     <h1 className="text-2xl font-bold">{order.order_number}</h1>
                     <p className="text-sm text-mist">{formatDate(order.created_time)}</p>
                 </div>
-                <OrderStatusBadge status={order.status} className="text-sm" />
+                <div className="flex items-center gap-3">
+                    <OrderStatusBadge status={order.status} className="text-sm" />
+                    {order.status === "cancelled" && (
+                        <FoodyButton size="sm" variant="danger" loading={remove.isPending} onClick={() => window.confirm(`Supprimer définitivement la commande ${order.order_number} ?`) && remove.mutate()}>
+                            Supprimer
+                        </FoodyButton>
+                    )}
+                </div>
             </div>
 
             {next.length > 0 && (

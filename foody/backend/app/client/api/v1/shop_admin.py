@@ -4,12 +4,13 @@ from datetime import date, datetime
 from typing import Annotated
 
 from anyio import to_thread
-from fastapi import APIRouter, File, Path, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Path, Query, Request, UploadFile
 
 from pydantic import ConfigDict, Field, computed_field
 
 from backend.app.client.schema.catalog import GetCategoryDetail, GetProductDetail
 from backend.app.client.schema.order import GetOrderDetail, UpdateOrderStatusParam
+from backend.app.client.service.notify_service import notify_service
 from backend.app.client.service.order_service import order_service
 from backend.common.enums import OrderStatus
 from backend.common.exception import errors
@@ -70,9 +71,12 @@ async def admin_get_order(request: Request, pk: Annotated[int, Path()]) -> Respo
 
 @router.patch('/orders/{pk}/status', summary='Move an order to its next status')
 async def admin_update_order_status(
-    request: Request, pk: Annotated[int, Path()], obj: UpdateOrderStatusParam
+    request: Request, pk: Annotated[int, Path()], obj: UpdateOrderStatusParam, background_tasks: BackgroundTasks
 ) -> ResponseModel:
+    before = (await order_service.get(pk=pk)).status
     order = await order_service.update_status(pk=pk, obj=obj, admin_id=request.user.id)
+    if order.status != before:
+        background_tasks.add_task(notify_service.status_changed, order.id)  # WhatsApp to the customer
     return response_base.success(request=request, data=GetOrderDetail.model_validate(order))
 
 

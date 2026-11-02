@@ -22,7 +22,7 @@ _WA_SUFFIX = '@s.whatsapp.net'
 
 # One key space per purpose, so a code is only valid for what it was sent for.
 _MESSAGES = {
-    'login': 'FOODY Miniardise : votre code de connexion est {code}.',
+    'login': '{brand} : votre code de connexion est {code}.',
 }
 
 
@@ -117,6 +117,11 @@ async def _send_to_any(phone: str, message: str) -> None:
         msg="Ce numéro n’est pas joignable sur WhatsApp. Vérifiez-le (indicatif compris).")
 
 
+async def send_whatsapp_text(phone: str, message: str) -> None:
+    """Send any text to a stored phone number (order notifications)."""
+    await _send_to_any(phone, message)
+
+
 class OtpService:
     @staticmethod
     async def start(phone: str, purpose: str = 'login') -> None:
@@ -132,7 +137,7 @@ class OtpService:
         minutes = settings.OTP_TTL_SECONDS // 60
         await _send_to_any(
             phone,
-            _MESSAGES[purpose].format(code=code)
+            _MESSAGES[purpose].format(code=code, brand=settings.BRAND_NAME)
             + f' Il expire dans {minutes} minutes. Ne le partagez avec personne.',
         )
 

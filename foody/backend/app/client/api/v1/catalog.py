@@ -41,6 +41,12 @@ async def update_category(request: Request, pk: Annotated[int, Path()], obj: Upd
     return response_base.success(request=request, data=GetCategoryDetail.model_validate(category))
 
 
+@router.delete('/categories/{pk}', summary='Delete an empty category', dependencies=[DependsAdmin])
+async def delete_category(request: Request, pk: Annotated[int, Path()]) -> ResponseModel:
+    await catalog_service.delete_category(pk=pk)
+    return response_base.success(request=request)
+
+
 @router.get('/products', summary='Shop products (paginated)', dependencies=[DependsPagination])
 async def list_products(
     request: Request,

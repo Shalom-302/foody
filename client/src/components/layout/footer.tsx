@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FoodyMark } from "@/components/foody/logo";
+import { BRAND } from "@/lib/brand";
 
 export function Footer() {
     return (
@@ -8,7 +9,7 @@ export function Footer() {
                 <div className="md:col-span-2">
                     <div className="flex items-center gap-2.5">
                         <FoodyMark />
-                        <span className="font-display text-xl font-bold">FOODY Miniardise</span>
+                        <span className="font-display text-xl font-bold">{BRAND.full}</span>
                     </div>
                     <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/70">
                         Jus artisanaux, mignardises et amuse-bouches préparés chaque jour avec amour, à Abidjan.
@@ -34,7 +35,7 @@ export function Footer() {
                 </div>
             </div>
             <div className="border-t border-cream/10 py-5 text-center text-xs text-cream/50">
-                © {new Date().getFullYear()} FOODY Miniardise · Abidjan, Côte d&apos;Ivoire
+                © {new Date().getFullYear()} {BRAND.full} · Abidjan, Côte d&apos;Ivoire
             </div>
         </footer>
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Package, ReceiptText, Store, Users } from "lucide-react";
+import { LayoutDashboard, MessageSquareQuote, Package, ReceiptText, Settings, Store, Tags, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FoodyLogo } from "@/components/foody/logo";
@@ -11,7 +11,10 @@ const NAV = [
     { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/admin/commandes", label: "Commandes", icon: ReceiptText },
     { href: "/admin/produits", label: "Produits", icon: Package },
+    { href: "/admin/categories", label: "Catégories", icon: Tags },
+    { href: "/admin/avis", label: "Avis clients", icon: MessageSquareQuote },
     { href: "/admin/equipe", label: "Clients & équipe", icon: Users },
+    { href: "/admin/reglages", label: "Réglages", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

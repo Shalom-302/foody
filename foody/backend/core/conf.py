@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     )
 
     APP_NAME: str = 'foody'
+    # Shop name as customers see it (WhatsApp messages).
+    BRAND_NAME: str = 'FOODY Miniardise'
 
     # Env Config
     ENVIRONMENT: Literal['dev', 'preprod', 'prod'] = 'dev'
@@ -162,6 +164,14 @@ class Settings(BaseSettings):
     GOWA_BASIC_USER: str = ''
     GOWA_BASIC_PASS: str = ''
     GOWA_TIMEOUT: int = 20
+    # Order notifications on WhatsApp (notify_service): every admin gets each new
+    # order, plus the numbers listed here (e.g. the kitchen); the customer gets
+    # an acknowledgement and the main status changes.
+    ORDER_NOTIFY_ADMINS: bool = True
+    ORDER_NOTIFY_CUSTOMER: bool = True
+    ORDER_NOTIFY_PHONES: list[str] = []
+    # Public address of the shop, for the links sent on WhatsApp.
+    SITE_URL: str = ''
     # WhatsApp numbers that get the admin role when they log in (bootstrap the
     # back-office without a shell). Any format: 07..., +225..., 225...
     ADMIN_PHONES: list[str] = []

@@ -16,6 +16,7 @@ from backend.common.log import log
 from backend.core.conf import settings
 from backend.crud.crud_catalog import product_dao
 from backend.crud.crud_order import day_bounds, order_dao
+from backend.app.client.service.shop_settings_service import DeliverySettings, get_delivery_settings
 from backend.crud.crud_user import user_dao
 from backend.database.db_postgres import async_db_session
 from backend.models.order import Order, OrderItem
@@ -25,22 +26,23 @@ from backend.utils.timezone import timezone
 _ORDER_NUMBER_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'  # no 0/O, 1/I
 
 
-def delivery_fee_for(method: DeliveryMethod, subtotal: int) -> int:
+def delivery_fee_for(method: DeliveryMethod, subtotal: int, ds: DeliverySettings) -> int:
     if method == DeliveryMethod.PICKUP:
         return 0
-    if settings.FREE_DELIVERY_THRESHOLD and subtotal >= settings.FREE_DELIVERY_THRESHOLD:
+    if ds.free_delivery_threshold and subtotal >= ds.free_delivery_threshold:
         return 0
-    return settings.DELIVERY_FEE
+    return ds.delivery_fee
 
 
 class OrderService:
     @staticmethod
-    def delivery_options() -> dict:
+    async def delivery_options() -> dict:
+        ds = await get_delivery_settings()
         return {
-            'delivery_fee': settings.DELIVERY_FEE,
-            'free_delivery_threshold': settings.FREE_DELIVERY_THRESHOLD,
-            'communes': settings.DELIVERY_COMMUNES,
-            'pickup_address': settings.PICKUP_ADDRESS or None,
+            'delivery_fee': ds.delivery_fee,
+            'free_delivery_threshold': ds.free_delivery_threshold,
+            'communes': ds.communes,
+            'pickup_address': ds.pickup_address,
             'payment_methods': settings.PAYMENT_METHODS_ENABLED,
         }
 
@@ -73,6 +75,9 @@ class OrderService:
             user = await user_dao.get(db, user_id)
             if user is None or not user.pseudo:
                 raise errors.ForbiddenError(msg='Choisissez un pseudo avant de commander.')
+            ds = await get_delivery_settings(db)
+            if delivery_method == DeliveryMethod.DELIVERY and obj.delivery_commune not in ds.communes:
+                raise errors.ForbiddenError(msg="Nous ne livrons pas encore cette commune.")
             products = await product_dao.lock_many(db, list(quantities))
             lines: list[OrderItem] = []
             for product_id, quantity in quantities.items():
@@ -96,7 +101,7 @@ class OrderService:
                 ))
 
             subtotal = sum(line.subtotal for line in lines)
-            delivery_fee = delivery_fee_for(delivery_method, subtotal)
+            delivery_fee = delivery_fee_for(delivery_method, subtotal, ds)
             is_delivery = delivery_method == DeliveryMethod.DELIVERY
             order = Order(
                 user_id=user_id,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ProductDetail } from "@/components/products/product-detail";
 import { SERVER_API_URL } from "@/lib/api/config";
+import { BRAND } from "@/lib/brand";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         const { data } = await res.json();
         return {
             title: data.name,
-            description: data.description ?? `${data.name} — FOODY Miniardise, Abidjan.`,
+            description: data.description ?? `${data.name} — ${BRAND.full}, Abidjan.`,
             openGraph: data.image_url ? { images: [data.image_url] } : undefined,
         };
     } catch {

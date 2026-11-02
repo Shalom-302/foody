@@ -128,6 +128,22 @@ export type DeliveryOptions = {
     payment_methods: PaymentMethod[];
 };
 
+export type Testimonial = {
+    id: number;
+    author: string;
+    quote: string;
+    location: string | null;
+    is_active: boolean;
+    sort_order: number;
+};
+
+export type ShopSettings = {
+    delivery_fee: number;
+    free_delivery_threshold: number;
+    pickup_address: string | null;
+    communes: string[];
+};
+
 export type Dashboard = {
     orders_count: number;
     revenue: number;

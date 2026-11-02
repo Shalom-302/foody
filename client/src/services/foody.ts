@@ -11,6 +11,8 @@ import type {
     PaymentStatus,
     Product,
     ProductInput,
+    ShopSettings,
+    Testimonial,
     User,
 } from "@/types/foody";
 
@@ -32,6 +34,7 @@ export const catalogApi = {
     products: (query: ProductQuery = {}) =>
         unwrap<Page<Product>>(api.get("/products", { params: clean({ size: 24, ...query }) })),
     product: (slug: string) => unwrap<Product>(api.get(`/products/${encodeURIComponent(slug)}`)),
+    testimonials: () => unwrap<Testimonial[]>(api.get("/testimonials")),
 };
 
 export const authApi = {
@@ -81,6 +84,18 @@ export const adminApi = {
     createCategory: (input: Partial<Category>) => unwrap<Category>(api.post("/categories", input)),
     updateCategory: (id: number, input: Partial<Category>) =>
         unwrap<Category>(api.patch(`/categories/${id}`, input)),
+    deleteCategory: (id: number) => unwrap<null>(api.delete(`/categories/${id}`)),
+    testimonials: () => unwrap<Testimonial[]>(api.get("/admin/testimonials")),
+    createTestimonial: (input: Omit<Testimonial, "id">) => unwrap<Testimonial>(api.post("/admin/testimonials", input)),
+    updateTestimonial: (id: number, input: Partial<Testimonial>) =>
+        unwrap<Testimonial>(api.patch(`/admin/testimonials/${id}`, input)),
+    deleteTestimonial: (id: number) => unwrap<null>(api.delete(`/admin/testimonials/${id}`)),
+    settings: () => unwrap<ShopSettings>(api.get("/admin/settings")),
+    saveSettings: (input: ShopSettings) => unwrap<ShopSettings>(api.put("/admin/settings", input)),
+    setCustomerStatus: (id: number, status: boolean) =>
+        unwrap<Customer>(api.patch(`/admin/customers/${id}/status`, { status })),
+    deleteCustomer: (id: number) => unwrap<null>(api.delete(`/admin/customers/${id}`)),
+    deleteOrder: (id: number) => unwrap<null>(api.delete(`/admin/orders/${id}`)),
     customers: (query: { q?: string; admins?: boolean; page?: number } = {}) =>
         unwrap<Page<Customer>>(api.get("/admin/customers", { params: clean({ size: 20, ...query }) })),
     setAdmin: (id: number, is_admin: boolean) =>

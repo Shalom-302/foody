@@ -44,9 +44,12 @@ class Handlers:
             module_name = cls.__module_namespace(module_path)
             try:
                 handler = importlib.import_module(module_name)
-                yield handler
             except Exception as e:
+                # Fail the boot loudly: skipping the module would silently drop
+                # its routes (an empty shop answering 404) instead of crashing.
                 logger.error(f"Erreur lors de l'importation de {module_name}: {e}")
+                raise
+            yield handler
 
     @classmethod
     def modules(cls) -> map:

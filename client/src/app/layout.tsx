@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { cn } from "@/lib/utils/cn";
 import "../styles/globals.css";
+import { BRAND } from "@/lib/brand";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -19,14 +20,14 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
     title: {
-        default: "FOODY Miniardise · Jus artisanaux et mignardises à Abidjan",
-        template: "%s · FOODY Miniardise",
+        default: `${BRAND.full} · Jus artisanaux et mignardises à Abidjan`,
+        template: `%s · ${BRAND.full}`,
     },
     description:
         "Jus de bissap, citronnades, mignardises et amuse-bouches faits maison, livrés dans tout Abidjan.",
     manifest: "/manifest.json",
     openGraph: {
-        title: "FOODY Miniardise",
+        title: BRAND.full,
         description: "Une petite douceur pour illuminer votre journée.",
         locale: "fr_CI",
         type: "website",

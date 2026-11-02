@@ -60,6 +60,12 @@ services:
       # WhatsApp numbers that become admins when they log in, e.g. ["0788016204"].
       # Further admins are then managed from /admin/equipe.
       - ADMIN_PHONES=${ADMIN_PHONES:-[]}
+      # New orders go to every admin on WhatsApp, plus these numbers (e.g. the kitchen).
+      - ORDER_NOTIFY_PHONES=${ORDER_NOTIFY_PHONES:-[]}
+      # Links in WhatsApp messages (order page, admin page).
+      - SITE_URL=https://${PUBLIC_DOMAIN}
+      # Name shown in the WhatsApp messages.
+      - BRAND_NAME=${BRAND_NAME:-FOODY Miniardise}
       # Shop settings (amounts in FCFA).
       - DELIVERY_FEE=${DELIVERY_FEE:-1500}
       - FREE_DELIVERY_THRESHOLD=${FREE_DELIVERY_THRESHOLD:-0}

@@ -262,25 +262,24 @@ export function Craft() {
     );
 }
 
-// Placeholder copy: replace with real, consented customer reviews before launch.
-const TESTIMONIALS = [
-    { quote: "Le bissap a le goût de celui de ma grand-mère. Livré bien frais, en plus !", name: "Cliente, Cocody" },
-    { quote: "Le plateau de mignardises a disparu en dix minutes au bureau.", name: "Client, Plateau" },
-    { quote: "Le coffret découverte est devenu mon cadeau préféré.", name: "Cliente, Marcory" },
-];
-
+/** Reviews entered in /admin/avis. No review yet: no section (never fake ones). */
 export function Testimonials() {
-    const scope = useScrollFx();
+    const { data: reviews } = useQuery({ queryKey: ["testimonials"], queryFn: catalogApi.testimonials });
+    const scope = useScrollFx([reviews?.length]);
+    if (!reviews?.length) return null;
     return (
         <section ref={scope} className="bg-butter/50 py-20 md:py-32">
             <div className="mx-auto max-w-6xl px-4 md:px-6">
                 <SectionTitle eyebrow="Ils en parlent" title="Des douceurs qui font sourire." />
                 <div className="mt-12 grid gap-5 md:grid-cols-3">
-                    {TESTIMONIALS.map((t, i) => (
-                        <figure key={i} data-reveal className="rounded-[2rem] bg-white p-7 shadow-soft">
+                    {reviews.map((t) => (
+                        <figure key={t.id} data-reveal className="rounded-[2rem] bg-white p-7 shadow-soft">
                             <Quote className="size-7 text-sun" />
                             <blockquote className="mt-4 text-lg leading-relaxed text-cocoa">« {t.quote} »</blockquote>
-                            <figcaption className="mt-5 text-sm text-mist">{t.name}</figcaption>
+                            <figcaption className="mt-5 text-sm text-mist">
+                                {t.author}
+                                {t.location && `, ${t.location}`}
+                            </figcaption>
                         </figure>
                     ))}
                 </div>

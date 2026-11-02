@@ -38,8 +38,9 @@ class CreateOrderParam(SchemaBase):
         if self.delivery_method == DeliveryMethod.DELIVERY:
             if not (self.delivery_address and self.delivery_address.strip()):
                 raise ValueError("L'adresse de livraison est obligatoire.")
-            if self.delivery_commune not in settings.DELIVERY_COMMUNES:
-                raise ValueError('Commune de livraison inconnue.')
+            # The commune is checked against the admin settings in order_service.
+            if not self.delivery_commune:
+                raise ValueError('La commune de livraison est obligatoire.')
         return self
 
 

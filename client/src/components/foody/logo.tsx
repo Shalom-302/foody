@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
+import { BRAND } from "@/lib/brand";
 
 export function FoodyMark({ className }: { className?: string }) {
     // A sun-drop: the yellow of a lemon slice with a hibiscus heart.
@@ -24,11 +25,11 @@ export function FoodyMark({ className }: { className?: string }) {
 
 export function FoodyLogo({ className }: { className?: string }) {
     return (
-        <Link href="/" className={cn("flex items-center gap-2.5", className)} aria-label="FOODY Miniardise, accueil">
+        <Link href="/" className={cn("flex items-center gap-2.5", className)} aria-label={`${BRAND.full}, accueil`}>
             <FoodyMark />
             <span className="flex flex-col leading-none">
-                <span className="font-display text-lg font-bold tracking-tight text-cocoa">FOODY</span>
-                <span className="text-[10px] font-medium tracking-[0.22em] text-mist uppercase">Miniardise</span>
+                <span className="font-display text-lg font-bold tracking-tight text-cocoa">{BRAND.name}</span>
+                <span className="text-[10px] font-medium tracking-[0.22em] text-mist uppercase">{BRAND.tagline}</span>
             </span>
         </Link>
     );

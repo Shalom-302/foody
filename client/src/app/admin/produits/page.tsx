@@ -2,8 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, ImagePlus, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Drawer, field, Toggle } from "@/components/admin/ui";
 import { FoodyButton, foodyButton } from "@/components/foody/button";
 import { ProductVisual } from "@/components/products/product-visual";
 import { apiErrorMessage } from "@/lib/api/client";
@@ -12,8 +14,6 @@ import { formatFCFA } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
 import { adminApi } from "@/services/foody";
 import type { Category, Product, ProductInput } from "@/types/foody";
-
-const field = "mt-1.5 h-11 w-full rounded-xl border border-cocoa/15 bg-white px-3 text-sm outline-none focus:border-sun focus:ring-2 focus:ring-sun/30";
 
 const EMPTY: ProductInput = {
     category_id: 0,
@@ -35,7 +35,6 @@ export default function AdminProductsPage() {
     const [q, setQ] = useState("");
     const search = useDebounce(q, 300);
     const [editing, setEditing] = useState<Product | "new" | null>(null);
-    const [showCategories, setShowCategories] = useState(false);
 
     const { data: categories } = useQuery({ queryKey: ["admin-categories"], queryFn: adminApi.categories });
     const { data, isLoading } = useQuery({ queryKey: ["admin-products", search], queryFn: () => adminApi.products({ q: search || undefined }) });
@@ -62,7 +61,7 @@ export default function AdminProductsPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <FoodyButton variant="outline" onClick={() => setShowCategories(true)}>Catégories</FoodyButton>
+                    <FoodyButton asChild variant="outline"><Link href="/admin/categories">Catégories</Link></FoodyButton>
                     <FoodyButton onClick={() => setEditing("new")} disabled={!categories?.length}>
                         <Plus /> Nouveau produit
                     </FoodyButton>
@@ -142,23 +141,7 @@ export default function AdminProductsPage() {
                     }}
                 />
             )}
-            {showCategories && categories && <CategoriesPanel categories={categories} onClose={() => setShowCategories(false)} />}
         </div>
-    );
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            aria-label={label}
-            onClick={() => onChange(!checked)}
-            className={cn("relative h-6 w-11 cursor-pointer rounded-full transition", checked ? "bg-sun" : "bg-stone-200")}
-        >
-            <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", checked ? "left-5.5" : "left-0.5")} />
-        </button>
     );
 }
 
@@ -242,22 +225,6 @@ function PhotoCell({ product, onChanged }: { product: Product; onChanged: () => 
                 }}
             />
         </button>
-    );
-}
-
-function Drawer({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-    return (
-        <div className="fixed inset-0 z-50 flex justify-end bg-cocoa/30" onClick={onClose}>
-            <div role="dialog" aria-modal="true" aria-label={title} className="h-full w-full max-w-lg overflow-y-auto bg-cream p-6 shadow-lift" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between">
-                    <h2 className="font-display text-xl font-semibold">{title}</h2>
-                    <button type="button" onClick={onClose} aria-label="Fermer" className="cursor-pointer rounded-full p-2 hover:bg-honey">
-                        <X className="size-5" />
-                    </button>
-                </div>
-                {children}
-            </div>
-        </div>
     );
 }
 
@@ -488,52 +455,3 @@ function ProductForm({ product, categories, onClose, onSaved }: { product: Produ
     );
 }
 
-function CategoriesPanel({ categories, onClose }: { categories: Category[]; onClose: () => void }) {
-    const queryClient = useQueryClient();
-    const [name, setName] = useState("");
-    const refresh = () => {
-        queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
-        queryClient.invalidateQueries({ queryKey: ["categories"] });
-    };
-    const create = useMutation({
-        mutationFn: () => adminApi.createCategory({ name: name.trim(), sort_order: categories.length }),
-        onSuccess: () => {
-            setName("");
-            refresh();
-        },
-        onError: (e) => toast.error(apiErrorMessage(e)),
-    });
-    const update = useMutation({
-        mutationFn: ({ id, input }: { id: number; input: Partial<Category> }) => adminApi.updateCategory(id, input),
-        onSuccess: refresh,
-        onError: (e) => toast.error(apiErrorMessage(e)),
-    });
-
-    return (
-        <Drawer title="Catégories" onClose={onClose}>
-            <ul className="mt-6 space-y-2">
-                {categories.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-soft">
-                        <input
-                            defaultValue={c.name}
-                            aria-label="Nom de la catégorie"
-                            onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== c.name && update.mutate({ id: c.id, input: { name: e.target.value.trim() } })}
-                            className="h-9 min-w-0 flex-1 rounded-lg px-2 text-sm font-medium outline-none focus:bg-cream"
-                        />
-                        <Toggle checked={c.is_active} label="Visible" onChange={(is_active) => update.mutate({ id: c.id, input: { is_active } })} />
-                    </li>
-                ))}
-            </ul>
-            <form
-                className="mt-5 flex gap-2"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    if (name.trim().length >= 2) create.mutate();
-                }}
-            >
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nouvelle catégorie" className={cn(field, "mt-0")} />
-                <FoodyButton type="submit" loading={create.isPending}><Plus /> Ajouter</FoodyButton>
-            </form>
-        </Drawer>
-    );
-}
