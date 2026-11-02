@@ -123,6 +123,24 @@ class NotifyService:
             await _send(order.customer_phone, _customer_ack(order))
 
     @staticmethod
+    async def customer_changed(order_id: int, cancelled: bool) -> None:
+        """The customer modified or cancelled a pending order: tell the admins."""
+        if not settings.ORDER_NOTIFY_ADMINS:
+            return
+        order = await _load(order_id)
+        if order is None:
+            return
+        who = order.customer_pseudo or order.customer_name
+        if cancelled:
+            message = f'❌ Commande {order.order_number} annulée par le client ({who}). Le stock a été remis.'
+        else:
+            message = '✏️ Commande modifiée par le client\n\n' + _admin_message(order).replace(
+                f'🛍️ Nouvelle commande {order.order_number}', f'Commande {order.order_number}', 1)
+        for phone in await _admin_phones():
+            await _send(phone, message)
+            await asyncio.sleep(1)
+
+    @staticmethod
     async def status_changed(order_id: int) -> None:
         if not settings.ORDER_NOTIFY_CUSTOMER:
             return

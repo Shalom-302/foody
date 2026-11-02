@@ -56,6 +56,8 @@ export const orderApi = {
     create: (input: CreateOrderInput) => unwrap<Order>(api.post("/orders", input)),
     mine: (page = 1) => unwrap<Page<Order>>(api.get("/orders/me", { params: { page, size: 20 } })),
     get: (id: number) => unwrap<Order>(api.get(`/orders/${id}`)),
+    update: (id: number, input: CreateOrderInput) => unwrap<Order>(api.put(`/orders/${id}`, input)),
+    cancel: (id: number) => unwrap<Order>(api.post(`/orders/${id}/cancel`)),
 };
 
 export type AdminOrderQuery = {

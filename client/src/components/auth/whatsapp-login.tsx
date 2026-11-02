@@ -215,7 +215,7 @@ export function WhatsappLogin() {
             <p className="mt-6 flex items-center justify-center gap-2 text-xs text-mist">
                 <ShieldCheck className="size-4" /> FOODY ne vous demandera jamais ce code.
             </p>
-            <BackedByKortex className="mx-auto mt-8 text-cocoa" />
+            <BackedByKortex className="mx-auto mt-8" />
         </div>
     );
 }

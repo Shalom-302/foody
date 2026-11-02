@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     })}
                 </nav>
                 <div className="hidden px-5 py-6 text-cocoa md:absolute md:bottom-0 md:block">
-                    <BackedByKortex size="sm" />
+                    <BackedByKortex />
                 </div>
             </aside>
             <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>

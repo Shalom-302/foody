@@ -8,6 +8,7 @@ import { FoodyButton } from "@/components/foody/button";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
 import { cn } from "@/lib/utils/cn";
 import { BRAND } from "@/lib/brand";
+import { BackedByKortex } from "@/components/foody/backed-by-kortex";
 
 const ObjectUniverse = dynamic(() => import("@/components/3d/object-universe"), { ssr: false });
 
@@ -88,6 +89,9 @@ export function HeroUniverse() {
                 <FoodyButton asChild size="lg" variant="outline">
                     <Link href="/boutique?dispo=1">Commander maintenant</Link>
                 </FoodyButton>
+            </div>
+            <div data-intro className="mt-6">
+                <BackedByKortex />
             </div>
         </div>
     );

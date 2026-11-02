@@ -37,6 +37,30 @@ async def my_orders(request: Request, db: CurrentSession) -> ResponseModel:
     return response_base.success(request=request, data=data)
 
 
+@router.put(
+    '/{pk}',
+    summary='Modify my pending order (items, address, contact)',
+    dependencies=[DependsJwtAuth, Depends(RateLimiter(times=20, minutes=10))],
+)
+async def update_my_order(
+    request: Request, pk: Annotated[int, Path()], obj: CreateOrderParam, background_tasks: BackgroundTasks
+) -> ResponseModel:
+    order = await order_service.update_for_user(pk=pk, user_id=request.user.id, user_phone=request.user.phone, obj=obj)
+    background_tasks.add_task(notify_service.customer_changed, order.id, False)
+    return response_base.success(request=request, data=GetOrderDetail.model_validate(order))
+
+
+@router.post(
+    '/{pk}/cancel',
+    summary='Cancel my pending order',
+    dependencies=[DependsJwtAuth, Depends(RateLimiter(times=10, minutes=10))],
+)
+async def cancel_my_order(request: Request, pk: Annotated[int, Path()], background_tasks: BackgroundTasks) -> ResponseModel:
+    order = await order_service.cancel_for_user(pk=pk, user_id=request.user.id)
+    background_tasks.add_task(notify_service.customer_changed, order.id, True)
+    return response_base.success(request=request, data=GetOrderDetail.model_validate(order))
+
+
 @router.get('/{pk}', summary='One of my orders', dependencies=[DependsJwtAuth])
 async def get_my_order(request: Request, pk: Annotated[int, Path()]) -> ResponseModel:
     order = await order_service.get_for_user(pk=pk, user_id=request.user.id)

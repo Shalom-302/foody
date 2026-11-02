@@ -1,13 +1,17 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, PartyPopper } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, PartyPopper, Pencil, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { toast } from "sonner";
+import { FoodyButton } from "@/components/foody/button";
+import { EditOrder } from "@/components/orders/edit-order";
 import { OrderStatusBadge, OrderTimeline } from "@/components/orders/order-status";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { formatDate, formatFCFA, formatPhone, PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/format";
+import { apiErrorMessage } from "@/lib/api/client";
 import { orderApi } from "@/services/foody";
 
 function OrderDetail() {
@@ -19,6 +23,18 @@ function OrderDetail() {
         queryFn: () => orderApi.get(Number(id)),
         enabled: ready && Number.isFinite(Number(id)),
         refetchInterval: 60_000, // status moves while the customer waits
+    });
+    const queryClient = useQueryClient();
+    const [editing, setEditing] = useState(false);
+    const cancel = useMutation({
+        mutationFn: () => orderApi.cancel(Number(id)),
+        onSuccess: (updated) => {
+            queryClient.setQueryData(["my-order", id], updated);
+            queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+            toast.success("Commande annulée");
+        },
+        onError: (e) => toast.error(apiErrorMessage(e)),
     });
 
     if (!ready || isLoading) return <div className="mx-auto mt-10 h-64 max-w-3xl animate-pulse rounded-3xl bg-honey" />;
@@ -49,6 +65,28 @@ function OrderDetail() {
                 </div>
                 <OrderStatusBadge status={order.status} className="text-sm" />
             </div>
+
+            {order.status === "pending" && !editing && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-3xl bg-honey p-4">
+                    <p className="mr-auto text-sm text-cocoa/80">Pas encore confirmée : vous pouvez encore la modifier ou l&apos;annuler.</p>
+                    <FoodyButton size="sm" variant="outline" onClick={() => setEditing(true)}>
+                        <Pencil /> Modifier ma commande
+                    </FoodyButton>
+                    <FoodyButton
+                        size="sm"
+                        variant="danger"
+                        loading={cancel.isPending}
+                        onClick={() => window.confirm("Annuler cette commande ?") && cancel.mutate()}
+                    >
+                        <XCircle /> Annuler ma commande
+                    </FoodyButton>
+                </div>
+            )}
+
+            {editing ? (
+                <EditOrder order={order} onDone={() => setEditing(false)} />
+            ) : (
+            <>
 
             <section className="mt-6 rounded-3xl bg-white p-5 shadow-soft">
                 <OrderTimeline status={order.status} method={order.delivery_method} />
@@ -87,6 +125,8 @@ function OrderDetail() {
                     <p className="mt-1 text-cocoa/75">{PAYMENT_STATUS_LABEL[order.payment_status]}</p>
                 </div>
             </section>
+            </>
+            )}
         </div>
     );
 }

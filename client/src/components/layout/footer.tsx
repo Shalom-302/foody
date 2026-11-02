@@ -8,9 +8,10 @@ export function Footer() {
         <footer className="mt-24 bg-cocoa text-cream">
             <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
                 <div className="md:col-span-2">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
                         <FoodyMark />
                         <span className="font-display text-xl font-bold">{BRAND.full}</span>
+                        <BackedByKortex onDark className="ml-2" />
                     </div>
                     <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream/70">
                         Jus artisanaux, mignardises et amuse-bouches préparés chaque jour avec amour, à Abidjan.
@@ -37,7 +38,6 @@ export function Footer() {
             </div>
             <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 border-t border-cream/10 px-4 py-5 text-xs text-cream/50 sm:flex-row md:px-6">
                 <span>© {new Date().getFullYear()} {BRAND.full} · Abidjan, Côte d&apos;Ivoire</span>
-                <BackedByKortex className="text-cream" />
             </div>
         </footer>
     );

@@ -34,6 +34,39 @@ def delivery_fee_for(method: DeliveryMethod, subtotal: int, ds: DeliverySettings
     return ds.delivery_fee
 
 
+def _merge(items) -> dict[int, int]:
+    """Merge duplicate lines: {product_id: quantity}."""
+    quantities: dict[int, int] = {}
+    for item in items:
+        quantities[item.product_id] = quantities.get(item.product_id, 0) + item.quantity
+    return quantities
+
+
+def _take_stock(products: dict, quantities: dict[int, int]) -> list[OrderItem]:
+    """Check and reserve the stock of locked products; prices come from the database only."""
+    lines: list[OrderItem] = []
+    for product_id, quantity in quantities.items():
+        product = products.get(product_id)
+        if product is None or not product.is_active or not product.category.is_active:
+            raise errors.ForbiddenError(msg="Un produit de votre panier n'est plus proposé.")
+        if quantity > settings.ORDER_MAX_QUANTITY_PER_ITEM:
+            raise errors.ForbiddenError(msg=f'Quantité trop élevée pour « {product.name} ».')
+        if product.stock < quantity:
+            raise errors.ForbiddenError(
+                msg=f'Stock insuffisant pour « {product.name} » ({product.stock} disponible(s)).',
+                data={'product_id': product.id, 'available': product.stock},
+            )
+        product.stock -= quantity
+        lines.append(OrderItem(
+            product_id=product.id,
+            product_name=product.name,
+            quantity=quantity,
+            unit_price=product.price,
+            subtotal=product.price * quantity,
+        ))
+    return lines
+
+
 class OrderService:
     @staticmethod
     async def delivery_options() -> dict:
@@ -66,10 +99,7 @@ class OrderService:
         if not phone:
             raise errors.ForbiddenError(msg='Le numéro WhatsApp est obligatoire.')
 
-        # Merge duplicate lines; prices and stock are read from the database only.
-        quantities: dict[int, int] = {}
-        for item in obj.items:
-            quantities[item.product_id] = quantities.get(item.product_id, 0) + item.quantity
+        quantities = _merge(obj.items)
 
         async with async_db_session.begin() as db:
             user = await user_dao.get(db, user_id)
@@ -79,26 +109,7 @@ class OrderService:
             if delivery_method == DeliveryMethod.DELIVERY and obj.delivery_commune not in ds.communes:
                 raise errors.ForbiddenError(msg="Nous ne livrons pas encore cette commune.")
             products = await product_dao.lock_many(db, list(quantities))
-            lines: list[OrderItem] = []
-            for product_id, quantity in quantities.items():
-                product = products.get(product_id)
-                if product is None or not product.is_active or not product.category.is_active:
-                    raise errors.ForbiddenError(msg="Un produit de votre panier n'est plus proposé.")
-                if quantity > settings.ORDER_MAX_QUANTITY_PER_ITEM:
-                    raise errors.ForbiddenError(msg=f'Quantité trop élevée pour « {product.name} ».')
-                if product.stock < quantity:
-                    raise errors.ForbiddenError(
-                        msg=f'Stock insuffisant pour « {product.name} » ({product.stock} disponible(s)).',
-                        data={'product_id': product.id, 'available': product.stock},
-                    )
-                product.stock -= quantity
-                lines.append(OrderItem(
-                    product_id=product.id,
-                    product_name=product.name,
-                    quantity=quantity,
-                    unit_price=product.price,
-                    subtotal=product.price * quantity,
-                ))
+            lines = _take_stock(products, quantities)
 
             subtotal = sum(line.subtotal for line in lines)
             delivery_fee = delivery_fee_for(delivery_method, subtotal, ds)
@@ -129,6 +140,67 @@ class OrderService:
             await db.flush()
             await db.refresh(order)
             log.info(f'order {order.order_number} created: {order.total} FCFA, user {user_id}')
+            return order
+
+    @staticmethod
+    async def _own_pending(db, pk: int, user_id: int) -> Order:
+        order = await order_dao.get_for_update(db, pk)
+        if not order or order.user_id != user_id:
+            raise errors.NotFoundError(msg='Commande introuvable.')
+        if order.status == OrderStatus.CANCELLED.value:
+            raise errors.ForbiddenError(msg='Cette commande est déjà annulée.')
+        if order.status != OrderStatus.PENDING.value:
+            raise errors.ForbiddenError(
+                msg='Cette commande est déjà en préparation : contactez-nous sur WhatsApp pour la changer.')
+        return order
+
+    @staticmethod
+    async def update_for_user(*, pk: int, user_id: int, user_phone: str | None, obj: CreateOrderParam) -> Order:
+        """The customer rewrites a pending order: items, contact and delivery details."""
+        phone = obj.customer_phone or user_phone
+        quantities = _merge(obj.items)
+        async with async_db_session.begin() as db:
+            order = await OrderService._own_pending(db, pk, user_id)
+            ds = await get_delivery_settings(db)
+            if obj.delivery_commune not in ds.communes:
+                raise errors.ForbiddenError(msg="Nous ne livrons pas encore cette commune.")
+            old = {i.product_id: i.quantity for i in order.items if i.product_id is not None}
+            products = await product_dao.lock_many(db, sorted(set(old) | set(quantities)))
+            for product_id, quantity in old.items():  # give the old lines back first
+                if product_id in products:
+                    products[product_id].stock += quantity
+            lines = _take_stock(products, quantities)
+
+            order.items.clear()
+            await db.flush()
+            order.items.extend(lines)
+            order.subtotal = sum(line.subtotal for line in lines)
+            order.delivery_fee = delivery_fee_for(DeliveryMethod.DELIVERY, order.subtotal, ds)
+            order.total = order.subtotal + order.delivery_fee
+            order.customer_name = obj.customer_name.strip()
+            order.customer_phone = phone or order.customer_phone
+            order.delivery_address = obj.delivery_address.strip() if obj.delivery_address else None
+            order.delivery_commune = obj.delivery_commune
+            order.delivery_instructions = obj.delivery_instructions
+            order.notes = obj.notes
+            await db.flush()
+            await db.refresh(order)
+            log.info(f'order {order.order_number} modified by its customer: {order.total} FCFA')
+            return order
+
+    @staticmethod
+    async def cancel_for_user(*, pk: int, user_id: int) -> Order:
+        async with async_db_session.begin() as db:
+            order = await OrderService._own_pending(db, pk, user_id)
+            products = await product_dao.lock_many(
+                db, [i.product_id for i in order.items if i.product_id is not None])
+            for item in order.items:  # stock back on the shelf
+                if item.product_id in products:
+                    products[item.product_id].stock += item.quantity
+            order.status = OrderStatus.CANCELLED.value
+            await db.flush()
+            await db.refresh(order)
+            log.info(f'order {order.order_number} cancelled by its customer')
             return order
 
     @staticmethod
