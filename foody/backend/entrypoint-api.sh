@@ -8,6 +8,13 @@ cd backend
 # auto-generated at boot.
 alembic upgrade head
 
+# First start on an empty database: fill the shop with the starter catalogue
+# (categories, products and photos). Skipped as soon as one category exists,
+# so nothing edited from /admin is ever overwritten. SEED_CATALOG=false to opt out.
+if [ "${SEED_CATALOG:-true}" = "true" ]; then
+  (cd .. && python -m backend.cli seed-catalog --if-empty) || echo "catalogue seed skipped (error above)"
+fi
+
 # Live-reload in development (the source is bind-mounted by the dev compose).
 # In production (ENVIRONMENT=prod) the baked-in code is served without reload.
 RELOAD=""

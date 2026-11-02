@@ -78,13 +78,24 @@ async def promote_admin(phone: str) -> int:
     return 0
 
 
-async def seed_catalog() -> int:
-    """Create the initial FOODY categories and a few demo products (idempotent)."""
-    from sqlalchemy import select
+async def seed_catalog(if_empty: bool = False) -> int:
+    """Create the initial FOODY categories and a few demo products (idempotent).
+
+    With ``if_empty`` (run by the container entrypoint at every start) nothing
+    happens as soon as one category exists, so edits made in /admin are never
+    touched.
+    """
+    from sqlalchemy import func, select
 
     from backend.database.db_postgres import async_db_session
     from backend.models.category import Category
     from backend.models.product import Product
+
+    if if_empty:
+        async with async_db_session() as db:
+            if await db.scalar(select(func.count(Category.id))):
+                print("[skip] Catalogue already populated.")
+                return 0
 
     categories = [
         ("Jus de bissap", "jus-de-bissap", "Infusion de fleurs d'hibiscus, servie bien fraîche."),
@@ -100,7 +111,7 @@ async def seed_catalog() -> int:
         ("jus-de-bissap", "Bissap gingembre", 1500, "50 cl", "Fleurs d'hibiscus, gingembre frais, sucre de canne", False),
         ("jus-de-citron", "Citronnade menthe", 1000, "33 cl", "Citrons frais, menthe, sucre de canne", True),
         ("autres-boissons", "Jus de gingembre", 1500, "50 cl", "Gingembre frais, citron, ananas", False),
-        ("mini-cakes", "Mini-cakes citron (x6)", 3000, "Boîte de 6", "Farine, beurre, œufs, citron", True),
+        ("mini-cakes", "Mini-cakes citron (x6)", 3000, "Boîte de 6", "Farine, beurre, œufs, citron", False),
         ("mini-cakes", "Mini-cakes chocolat (x6)", 3500, "Boîte de 6", "Farine, beurre, œufs, chocolat noir", False),
         ("coffrets-gourmands", "Coffret découverte", 10000, "4 jus + 12 mignardises", "Assortiment de la maison", False),
         ("mignardises", "Plateau de petits fours", 15000, "24 pièces", "Assortiment de mignardises sucrées du moment", True),
@@ -204,7 +215,8 @@ def main() -> int:
     pa = sub.add_parser("promote-admin", help="Grant the admin role to a WhatsApp customer")
     pa.add_argument("--phone", required=True, help="WhatsApp number, e.g. 0788016204 or +2250788016204.")
 
-    sub.add_parser("seed-catalog", help="Create the initial categories and demo products")
+    sc = sub.add_parser("seed-catalog", help="Create the initial categories and demo products")
+    sc.add_argument("--if-empty", action="store_true", help="Do nothing if any category already exists.")
 
     args = parser.parse_args()
     if args.command == "create-admin":
@@ -214,7 +226,7 @@ def main() -> int:
     if args.command == "promote-admin":
         return asyncio.run(promote_admin(args.phone))
     if args.command == "seed-catalog":
-        return asyncio.run(seed_catalog())
+        return asyncio.run(seed_catalog(if_empty=args.if_empty))
     return 1
 
 
