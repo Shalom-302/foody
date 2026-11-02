@@ -6,10 +6,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FoodyButton } from "@/components/foody/button";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/gsap";
-import { PHOTOS, unsplash } from "@/lib/photos";
 import { cn } from "@/lib/utils/cn";
 
-const PhotoUniverse = dynamic(() => import("@/components/3d/photo-universe"), { ssr: false });
+const ObjectUniverse = dynamic(() => import("@/components/3d/object-universe"), { ssr: false });
 
 /** WebGL scene only where it will run smoothly; everyone else gets the photo collage. */
 function canRun3D(): boolean {
@@ -97,7 +96,7 @@ export function HeroUniverse() {
             <section ref={section} className="relative overflow-hidden">
                 <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-6 pb-16 md:grid-cols-[1.1fr_1fr] md:px-6 md:pt-12">
                     {intro}
-                    <PhotoCollage />
+                    <CutoutCollage />
                 </div>
             </section>
         );
@@ -108,7 +107,7 @@ export function HeroUniverse() {
             <div className="sticky top-0 h-dvh overflow-hidden">
                 <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#FFF6D9_0%,#FFFDF5_65%)]" />
                 <div className={cn("absolute inset-0 transition-opacity duration-1000", ready ? "opacity-100" : "opacity-0")}>
-                    <PhotoUniverse progress={progress} onReady={() => setReady(true)} />
+                    <ObjectUniverse progress={progress} onReady={() => setReady(true)} />
                 </div>
                 {/* Text keeps contrast over the photos. */}
                 <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,245,0.9)_0%,rgba(255,253,245,0.75)_45%,transparent_70%)] md:bg-[linear-gradient(90deg,rgba(255,253,245,0.96)_0%,rgba(255,253,245,0.85)_32%,transparent_55%)]" />
@@ -139,24 +138,25 @@ export function HeroUniverse() {
     );
 }
 
-function PhotoCollage() {
-    const tiles = [
-        { id: PHOTOS.bissapGlass, cls: "col-span-2 row-span-2" },
-        { id: PHOTOS.lemonSlices, cls: "" },
-        { id: PHOTOS.macaronsRow, cls: "" },
-        { id: PHOTOS.hibiscusFlower, cls: "" },
-        { id: PHOTOS.lemonadeJar, cls: "" },
+/** Static fallback (reduced motion, small devices): the same cut-outs, composed. */
+function CutoutCollage() {
+    const items = [
+        { name: "macarons-trio", cls: "left-[6%] top-[4%] w-[42%] rotate-[-6deg]" },
+        { name: "glass-bissap", cls: "right-[4%] top-0 w-[34%] rotate-[5deg]" },
+        { name: "tartlet-blueberry", cls: "left-[20%] bottom-[2%] w-[44%] rotate-[4deg]" },
+        { name: "lemon-halves", cls: "right-[2%] bottom-[14%] w-[38%] rotate-[-8deg]" },
+        { name: "hibiscus", cls: "left-0 top-[42%] w-[26%] rotate-[12deg]" },
     ];
     return (
-        <div className="grid grid-cols-3 grid-rows-3 gap-3">
-            {tiles.map((t, i) => (
+        <div className="relative aspect-square w-full">
+            {items.map((i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                    key={t.id}
+                    key={i.name}
                     data-intro
-                    src={unsplash(t.id, i === 0 ? 900 : 500, i === 0 ? 900 : 500)}
+                    src={`/cutouts/${i.name}.webp`}
                     alt=""
-                    className={cn("aspect-square size-full rounded-3xl object-cover shadow-soft", t.cls)}
+                    className={cn("absolute drop-shadow-[0_18px_24px_rgba(73,61,38,0.25)]", i.cls)}
                 />
             ))}
         </div>
