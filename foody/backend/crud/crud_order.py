@@ -37,6 +37,7 @@ class CRUDOrder(CRUDBase[Order]):
                 self.model.order_number.ilike(pattern),
                 self.model.customer_phone.like(pattern),
                 self.model.customer_name.ilike(pattern),
+                self.model.customer_pseudo.ilike(pattern),
             ))
         start, end = day_bounds(date_from, date_to)
         if start:

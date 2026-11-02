@@ -196,7 +196,7 @@ class AuthService:
                 sub=str(current_user.x_id),
                 token=current_token,
                 refresh_token=refresh_token,
-                multi_login=False,
+                multi_login=settings.TOKEN_MULTI_LOGIN,
             )
             response.set_cookie(
                 key=settings.COOKIE_REFRESH_TOKEN_KEY,
@@ -219,13 +219,12 @@ class AuthService:
         token = get_token(request)
         refresh_token = request.cookies.get(settings.COOKIE_REFRESH_TOKEN_KEY)
         response.delete_cookie(settings.COOKIE_REFRESH_TOKEN_KEY)
-        # if request.user.is_multi_login:
-        #     key = f'{settings.TOKEN_REDIS_PREFIX}:{request.user.id}:{token}'
-        #     await redis_client.delete(key)
-        #     if refresh_token:
-        #         key = f'{settings.TOKEN_REFRESH_REDIS_PREFIX}:{request.user.id}:{refresh_token}'
-        #         await redis_client.delete(key)
-        # else:
+        if settings.TOKEN_MULTI_LOGIN:
+            # Log out this device only: the other devices keep their session.
+            await redis_client.delete(f'{settings.TOKEN_REDIS_PREFIX}:{request.user.x_id}:{token}')
+            if refresh_token:
+                await redis_client.delete(f'{settings.TOKEN_REFRESH_REDIS_PREFIX}:{request.user.x_id}:{refresh_token}')
+            return
         key_prefix = f'{settings.TOKEN_REDIS_PREFIX}:{request.user.x_id}:'
         await redis_client.delete_prefix(key_prefix)
         key_prefix = f'{settings.TOKEN_REFRESH_REDIS_PREFIX}:{request.user.x_id}:'

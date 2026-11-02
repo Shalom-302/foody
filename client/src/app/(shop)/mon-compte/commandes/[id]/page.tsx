@@ -74,7 +74,8 @@ function OrderDetail() {
             <section className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-3xl bg-honey p-5 text-sm">
                     <h2 className="font-display font-semibold">{order.delivery_method === "pickup" ? "Retrait" : "Livraison"}</h2>
-                    <p className="mt-2">{order.customer_name} · {formatPhone(order.customer_phone)}</p>
+                    <p className="mt-2"><span className="font-semibold">{order.customer_pseudo ?? order.customer_name}</span> · {formatPhone(order.customer_phone)}</p>
+                    {order.customer_pseudo && order.customer_name !== order.customer_pseudo && <p className="text-cocoa/75">Livraison au nom de {order.customer_name}</p>}
                     {order.delivery_method === "delivery" && (
                         <p className="mt-1 text-cocoa/75">{order.delivery_address}, {order.delivery_commune}</p>
                     )}

@@ -49,9 +49,20 @@ export type User = {
     id: number;
     x_id: string;
     full_name: string | null;
+    pseudo: string | null;
     phone: string | null;
     email: string | null;
     roles: { name: string }[];
+};
+
+export type Customer = {
+    id: number;
+    pseudo: string | null;
+    full_name: string | null;
+    phone: string | null;
+    status: boolean;
+    is_admin: boolean;
+    join_time: string | null;
 };
 
 export type OrderStatus =
@@ -85,6 +96,7 @@ export type Order = {
     total: number;
     customer_name: string;
     customer_phone: string;
+    customer_pseudo: string | null;
     delivery_method: DeliveryMethod;
     delivery_address: string | null;
     delivery_commune: string | null;

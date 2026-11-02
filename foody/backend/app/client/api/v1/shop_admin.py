@@ -1,10 +1,12 @@
 """FOODY back-office: dashboard, orders, full catalogue, uploads."""
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from anyio import to_thread
 from fastapi import APIRouter, File, Path, Query, Request, UploadFile
+
+from pydantic import ConfigDict, Field, computed_field
 
 from backend.app.client.schema.catalog import GetCategoryDetail, GetProductDetail
 from backend.app.client.schema.order import GetOrderDetail, UpdateOrderStatusParam
@@ -13,6 +15,10 @@ from backend.common.enums import OrderStatus
 from backend.common.exception import errors
 from backend.common.pagination import DependsPagination, paging_data
 from backend.common.response.response_schema import ResponseModel, response_base
+from backend.common.schema import SchemaBase
+from backend.crud.crud_user import user_dao
+from backend.database.db_postgres import async_db_session
+from backend.database.db_redis import redis_client
 from backend.common.security.permissions import DependsAdmin
 from backend.core.conf import settings
 from backend.crud.crud_catalog import category_dao, product_dao
@@ -87,6 +93,60 @@ async def admin_list_products(
 async def admin_list_categories(request: Request, db: CurrentSession) -> ResponseModel:
     rows = (await db.execute(category_dao.get_list(active_only=False))).scalars().all()
     return response_base.success(request=request, data=[GetCategoryDetail.model_validate(c) for c in rows])
+
+
+class CustomerRole(SchemaBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+
+
+class CustomerDetail(SchemaBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pseudo: str | None = None
+    full_name: str | None = None
+    phone: str | None = None
+    status: bool
+    join_time: datetime | None = None
+    roles: list[CustomerRole] = Field(default_factory=list, exclude=True)
+
+    @computed_field
+    @property
+    def is_admin(self) -> bool:
+        return any(r.name == 'admin' for r in self.roles)
+
+
+class SetAdminParam(SchemaBase):
+    is_admin: bool
+
+
+@router.get('/customers', summary='Shop customers (paginated)', dependencies=[DependsPagination])
+async def admin_list_customers(
+    request: Request,
+    db: CurrentSession,
+    q: Annotated[str | None, Query(max_length=100, description='Pseudo, name or phone')] = None,
+    admins: Annotated[bool, Query(description='Admins only')] = False,
+) -> ResponseModel:
+    page = await paging_data(db, user_dao.get_customer_list(q=q, admins_only=admins), CustomerDetail)
+    return response_base.success(request=request, data=page)
+
+
+@router.patch('/customers/{pk}/admin', summary='Grant or revoke the admin role')
+async def admin_set_customer_admin(request: Request, pk: Annotated[int, Path()], obj: SetAdminParam) -> ResponseModel:
+    if pk == request.user.id and not obj.is_admin:
+        raise errors.ForbiddenError(msg='Vous ne pouvez pas retirer votre propre accès admin.')
+    async with async_db_session.begin() as db:
+        user = await user_dao.get_with_relation(db, id=pk, populates=['roles'])
+        if user is None or not user.phone:
+            raise errors.NotFoundError(msg='Client introuvable.')
+        await user_dao.set_admin(db, user, obj.is_admin)
+        detail = CustomerDetail.model_validate(user)
+        x_id = user.x_id
+    # The JWT middleware caches roles: drop it so the change applies right away.
+    await redis_client.delete(f'{settings.JWT_USER_REDIS_PREFIX}:{x_id}')
+    return response_base.success(request=request, data=detail)
 
 
 @router.post('/uploads', summary='Upload a product image or a GLB model')

@@ -34,7 +34,7 @@ function AdminOrders() {
         <div>
             <h1 className="text-2xl font-bold">Commandes</h1>
             <div className="mt-5 flex flex-wrap gap-2">
-                <input className={`${input} min-w-48 flex-1`} placeholder="N°, nom ou téléphone" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+                <input className={`${input} min-w-48 flex-1`} placeholder="N°, pseudo, nom ou téléphone" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
                 <select
                     className={`${input} cursor-pointer`}
                     value={status}
@@ -67,7 +67,7 @@ function AdminOrders() {
                                         <Link href={`/admin/commandes/${o.id}`} className="font-semibold" onClick={(e) => e.stopPropagation()}>{o.order_number}</Link>
                                         <span className="block text-xs text-mist">{formatDate(o.created_time)}</span>
                                     </td>
-                                    <td className="px-4 py-3">{o.customer_name}<span className="block text-xs text-mist">{formatPhone(o.customer_phone)}</span></td>
+                                    <td className="px-4 py-3"><span className="font-semibold">{o.customer_pseudo ?? o.customer_name}</span><span className="block text-xs text-mist">{o.customer_pseudo && o.customer_name !== o.customer_pseudo ? `${o.customer_name} · ` : ""}{formatPhone(o.customer_phone)}</span></td>
                                     <td className="px-4 py-3">{o.delivery_method === "pickup" ? "Retrait" : o.delivery_commune}</td>
                                     <td className="px-4 py-3 font-semibold tabular-nums">{formatFCFA(o.total)}</td>
                                     <td className="px-4 py-3"><OrderStatusBadge status={o.status} /></td>

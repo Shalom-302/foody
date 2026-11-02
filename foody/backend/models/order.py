@@ -21,6 +21,8 @@ class Order(Base):
     customer_phone: Mapped[str] = mapped_column(sa.String(20), index=True)
     delivery_method: Mapped[str] = mapped_column(sa.String(20))
     payment_method: Mapped[str] = mapped_column(sa.String(20))
+    # The customer's pseudo when the order was placed (what the shop displays).
+    customer_pseudo: Mapped[str | None] = mapped_column(sa.String(30), default=None)
     delivery_address: Mapped[str | None] = mapped_column(sa.String(300), default=None)
     delivery_commune: Mapped[str | None] = mapped_column(sa.String(60), default=None)
     delivery_instructions: Mapped[str | None] = mapped_column(sa.String(500), default=None)

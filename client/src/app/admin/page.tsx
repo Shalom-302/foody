@@ -97,7 +97,7 @@ export default function AdminDashboard() {
                                 <Link href={`/admin/commandes/${o.id}`} className="flex items-center justify-between gap-3 py-3 text-sm hover:text-sun-dark">
                                     <span className="min-w-0">
                                         <span className="font-semibold">{o.order_number}</span>
-                                        <span className="block truncate text-mist">{o.customer_name} · {formatDate(o.created_time)}</span>
+                                        <span className="block truncate text-mist">{o.customer_pseudo ?? o.customer_name} · {formatDate(o.created_time)}</span>
                                     </span>
                                     <span className="flex shrink-0 items-center gap-2">
                                         <span className="font-semibold">{formatFCFA(o.total)}</span>

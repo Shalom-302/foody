@@ -21,6 +21,9 @@ class User(Base):
     # code included) and an OTP: no email, no password. Back-office accounts
     # created with `backend.cli create-admin` keep the email + password login.
     full_name: Mapped[str | None] = mapped_column(sa.String(120), default=None, nullable=True)
+    # Public name chosen at the first WhatsApp login, shown on the orders.
+    # Unique case-insensitively (functional index ix_user_pseudo_lower below).
+    pseudo: Mapped[str | None] = mapped_column(sa.String(30), default=None, nullable=True)
     phone: Mapped[str | None] = mapped_column(sa.String(20), index=True, unique=True, nullable=True, default=None)
     email: Mapped[str | None] = mapped_column(sa.String(200), index=True, unique=True, nullable=True, default=None)
     password: Mapped[str | None] = mapped_column(sa.String, nullable=True, default=None)
@@ -32,3 +35,5 @@ class User(Base):
 
     # User related roles 
     roles: Mapped[list["Role"]] = relationship(secondary=user_role, init=False, lazy="joined")
+
+    __table_args__ = (sa.Index('ix_user_pseudo_lower', sa.func.lower(pseudo), unique=True),)

@@ -1,6 +1,7 @@
 from fast_captcha import text_captcha
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import Select
 
 from backend.models import Role, User
@@ -55,6 +56,45 @@ class CRUDUser(CRUDBase[User]):
         :return:
         """
         return await self.select_model_by_column(db, phone=phone, populates=['roles'])
+
+    async def get_by_pseudo_ci(self, db: AsyncSession, pseudo: str) -> User | None:
+        """Pseudos are unique case-insensitively (index ix_user_pseudo_lower)."""
+        stmt = select(self.model).where(func.lower(self.model.pseudo) == pseudo.lower())
+        return (await db.execute(stmt)).scalars().first()
+
+    async def set_admin(self, db: AsyncSession, user: User, is_admin: bool) -> bool:
+        """Grant or revoke the admin role. Returns True when something changed."""
+        has = any(r.name == Role_enum.ADMIN.value for r in user.roles)
+        if has == is_admin:
+            return False
+        if is_admin:
+            role = await role_dao.get_by_name(db, Role_enum.ADMIN.value)
+            if role is None:
+                role = Role(name=Role_enum.ADMIN.value)
+                db.add(role)
+                await db.flush()
+            user.roles.append(role)
+        else:
+            user.roles[:] = [r for r in user.roles if r.name != Role_enum.ADMIN.value]
+        await db.flush()
+        return True
+
+    def get_customer_list(self, q: str | None = None, admins_only: bool = False) -> Select:
+        """Shop customers (WhatsApp accounts), newest first."""
+        # selectinload: the joined default would duplicate rows under LIMIT/OFFSET.
+        stmt = (
+            select(self.model)
+            .options(selectinload(self.model.roles))
+            .where(self.model.phone.is_not(None))
+            .order_by(desc(self.model.id))
+        )
+        if q:
+            pattern = f'%{q.strip()}%'
+            stmt = stmt.where(or_(self.model.pseudo.ilike(pattern), self.model.phone.like(pattern),
+                                  self.model.full_name.ilike(pattern)))
+        if admins_only:
+            stmt = stmt.where(self.model.roles.any(Role.name == Role_enum.ADMIN.value))
+        return stmt
 
     async def add_whatsapp_customer(self, db: AsyncSession, phone: str, full_name: str | None = None) -> User:
         """

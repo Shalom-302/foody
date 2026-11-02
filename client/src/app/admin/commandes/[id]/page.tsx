@@ -80,7 +80,8 @@ export default function AdminOrderPage() {
             <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <section className="rounded-3xl bg-white p-5 shadow-soft text-sm">
                     <h2 className="font-display font-semibold">Client</h2>
-                    <p className="mt-2 font-medium">{order.customer_name}</p>
+                    <p className="mt-2 text-base font-semibold">{order.customer_pseudo ?? order.customer_name}</p>
+                    {order.customer_pseudo && <p className="text-mist">Livraison : {order.customer_name}</p>}
                     <p className="text-mist">{formatPhone(order.customer_phone)}</p>
                     <a href={wa} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#25D366]/15 px-4 py-2 font-semibold text-[#128C7E] hover:bg-[#25D366]/25">
                         <MessageCircle className="size-4" /> Écrire sur WhatsApp

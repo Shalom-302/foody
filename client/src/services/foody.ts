@@ -2,6 +2,7 @@ import { api, unwrap } from "@/lib/api/client";
 import type {
     Category,
     CreateOrderInput,
+    Customer,
     Dashboard,
     DeliveryOptions,
     Order,
@@ -38,12 +39,12 @@ export const authApi = {
         unwrap<{ sent: boolean; phone: string; expires_in: number; resend_in: number }>(
             api.post("/auth/whatsapp/request-otp", { phone }),
         ),
-    verifyOtp: (phone: string, code: string, full_name?: string) =>
-        unwrap<{ access_token: string; user: User; is_new_user: boolean }>(
-            api.post("/auth/whatsapp/verify-otp", { phone, code, full_name: full_name || undefined }),
+    verifyOtp: (phone: string, code: string) =>
+        unwrap<{ access_token: string; user: User; is_new_user: boolean; needs_pseudo: boolean }>(
+            api.post("/auth/whatsapp/verify-otp", { phone, code }),
         ),
     me: () => unwrap<User>(api.get("/auth/me")),
-    updateMe: (full_name: string) => unwrap<null>(api.patch("/auth/me", { full_name })),
+    updateMe: (changes: { pseudo?: string; full_name?: string }) => unwrap<null>(api.patch("/auth/me", changes)),
     logout: () => unwrap<null>(api.post("/auth/logout")),
 };
 
@@ -80,6 +81,10 @@ export const adminApi = {
     createCategory: (input: Partial<Category>) => unwrap<Category>(api.post("/categories", input)),
     updateCategory: (id: number, input: Partial<Category>) =>
         unwrap<Category>(api.patch(`/categories/${id}`, input)),
+    customers: (query: { q?: string; admins?: boolean; page?: number } = {}) =>
+        unwrap<Page<Customer>>(api.get("/admin/customers", { params: clean({ size: 20, ...query }) })),
+    setAdmin: (id: number, is_admin: boolean) =>
+        unwrap<Customer>(api.patch(`/admin/customers/${id}/admin`, { is_admin })),
     upload: (file: File) => {
         const form = new FormData();
         form.append("file", file);

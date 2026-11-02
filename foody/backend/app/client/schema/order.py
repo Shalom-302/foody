@@ -71,6 +71,7 @@ class GetOrderDetail(SchemaBase):
     total: int
     customer_name: str
     customer_phone: str
+    customer_pseudo: str | None = None
     delivery_method: DeliveryMethod
     delivery_address: str | None = None
     delivery_commune: str | None = None

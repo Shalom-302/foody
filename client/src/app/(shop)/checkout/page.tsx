@@ -35,7 +35,7 @@ export default function CheckoutPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (user?.full_name && !name) setName(user.full_name);
+        if (!name && (user?.full_name || user?.pseudo)) setName(user.full_name || user.pseudo || "");
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
@@ -94,7 +94,7 @@ export default function CheckoutPage() {
                         <h2 className="font-display text-lg font-semibold">Vos coordonnées</h2>
                         <div className="mt-4 grid gap-4 sm:grid-cols-2">
                             <label className="block text-sm font-medium">
-                                Nom
+                                Nom pour la livraison
                                 <input required minLength={2} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className={field} />
                             </label>
                             <label className="block text-sm font-medium">

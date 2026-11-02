@@ -70,6 +70,9 @@ class OrderService:
             quantities[item.product_id] = quantities.get(item.product_id, 0) + item.quantity
 
         async with async_db_session.begin() as db:
+            user = await user_dao.get(db, user_id)
+            if user is None or not user.pseudo:
+                raise errors.ForbiddenError(msg='Choisissez un pseudo avant de commander.')
             products = await product_dao.lock_many(db, list(quantities))
             lines: list[OrderItem] = []
             for product_id, quantity in quantities.items():
@@ -105,6 +108,7 @@ class OrderService:
                 customer_phone=phone,
                 delivery_method=delivery_method.value,
                 payment_method=payment_method.value,
+                customer_pseudo=user.pseudo,
                 delivery_address=obj.delivery_address.strip() if is_delivery and obj.delivery_address else None,
                 delivery_commune=obj.delivery_commune if is_delivery else None,
                 delivery_instructions=obj.delivery_instructions,
@@ -114,8 +118,7 @@ class OrderService:
             db.add(order)
 
             # The first order fills in the customer's name on the profile.
-            user = await user_dao.get(db, user_id)
-            if user and not user.full_name:
+            if not user.full_name:
                 user.full_name = order.customer_name
 
             await db.flush()

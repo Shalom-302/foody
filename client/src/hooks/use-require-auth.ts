@@ -15,11 +15,12 @@ export function useRequireAuth({ admin = false } = {}) {
     const pathname = usePathname();
     const user = useAuthStore((s) => s.user);
 
-    const allowed = !!user && (!admin || isAdmin(user));
+    const allowed = !!user && !!user.pseudo && (!admin || isAdmin(user));
 
     useEffect(() => {
         if (!hydrated) return;
-        if (!user) router.replace(`/auth?next=${encodeURIComponent(pathname)}`);
+        // No pseudo yet: /auth shows the "choose your pseudo" step, then comes back.
+        if (!user || !user.pseudo) router.replace(`/auth?next=${encodeURIComponent(pathname)}`);
         else if (admin && !isAdmin(user)) router.replace("/");
     }, [hydrated, user, admin, pathname, router]);
 

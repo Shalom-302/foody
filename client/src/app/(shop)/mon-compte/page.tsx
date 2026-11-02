@@ -27,11 +27,11 @@ export default function AccountPage() {
     });
 
     const saveName = useMutation({
-        mutationFn: (fullName: string) => authApi.updateMe(fullName),
-        onSuccess: (_, fullName) => {
-            if (user) setUser({ ...user, full_name: fullName });
+        mutationFn: (pseudo: string) => authApi.updateMe({ pseudo }),
+        onSuccess: (_, pseudo) => {
+            if (user) setUser({ ...user, pseudo });
             setName(null);
-            toast.success("Profil mis à jour");
+            toast.success("Pseudo mis à jour");
         },
         onError: (e) => toast.error(apiErrorMessage(e)),
     });
@@ -51,7 +51,7 @@ export default function AccountPage() {
     return (
         <div className="mx-auto max-w-4xl px-4 pt-6 pb-10 md:px-6 md:pt-10">
             <div className="flex items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold tracking-tight">Mon compte</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Salut {user.pseudo} 👋</h1>
                 <FoodyButton variant="ghost" size="sm" onClick={logout}>
                     <LogOut /> Déconnexion
                 </FoodyButton>
@@ -61,12 +61,12 @@ export default function AccountPage() {
                 <h2 className="font-display text-lg font-semibold">Profil</h2>
                 <dl className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                        <dt className="text-sm text-mist">Nom</dt>
+                        <dt className="text-sm text-mist">Pseudo</dt>
                         <dd className="mt-1">
                             {name === null ? (
                                 <span className="flex items-center gap-3">
-                                    <span className="font-medium">{user.full_name || "—"}</span>
-                                    <button type="button" className="cursor-pointer text-sm font-semibold underline" onClick={() => setName(user.full_name ?? "")}>
+                                    <span className="font-display text-lg font-semibold">{user.pseudo}</span>
+                                    <button type="button" className="cursor-pointer text-sm font-semibold underline" onClick={() => setName(user.pseudo ?? "")}>
                                         Modifier
                                     </button>
                                 </span>
@@ -78,7 +78,7 @@ export default function AccountPage() {
                                         saveName.mutate(name.trim());
                                     }}
                                 >
-                                    <input autoFocus minLength={2} maxLength={120} required value={name} onChange={(e) => setName(e.target.value)} className="h-10 flex-1 rounded-xl border border-cocoa/15 px-3 outline-none focus:border-sun" />
+                                    <input autoFocus minLength={3} maxLength={30} required value={name} onChange={(e) => setName(e.target.value)} className="h-10 flex-1 rounded-xl border border-cocoa/15 px-3 outline-none focus:border-sun" />
                                     <FoodyButton size="sm" type="submit" loading={saveName.isPending}>OK</FoodyButton>
                                 </form>
                             )}

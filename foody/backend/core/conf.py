@@ -93,8 +93,12 @@ class Settings(BaseSettings):
 
     # Token
     TOKEN_ALGORITHM: str = 'HS256'
-    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24 * 1  # access token lifetime
-    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # refresh token lifetime
+    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24 * 1  # access token lifetime (renewed silently)
+    # Refresh token lifetime. Sliding: every refresh issues a new one, so a
+    # customer who comes back at least once in this window never logs out.
+    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 90
+    # One session per device: logging in on the laptop keeps the phone logged in.
+    TOKEN_MULTI_LOGIN: bool = True
     TOKEN_REDIS_PREFIX: str = 'foody:token'
     USER_SECURE_TOKEN_REDIS_PREFIX: str = 'foody:user:token'
     ADMIN_SECURE_TOKEN_REDIS_PREFIX: str = 'foody:admin:token'
@@ -133,7 +137,8 @@ class Settings(BaseSettings):
 
     # Cookies
     COOKIE_REFRESH_TOKEN_KEY: str = 'foody_refresh_token'
-    COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS: int = TOKEN_REFRESH_EXPIRE_SECONDS
+    # Follows TOKEN_REFRESH_EXPIRE_SECONDS (see _sync_cookie_lifetime) unless set.
+    COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS: int = 0
     # Secure cookie flags. 'lax' works for a same-site front/back (e.g.
     # localhost:3000 -> localhost:8000); use 'none' + secure for cross-domain.
     # COOKIE_SECURE is forced on outside dev (see auth_service), so the refresh
@@ -157,6 +162,9 @@ class Settings(BaseSettings):
     GOWA_BASIC_USER: str = ''
     GOWA_BASIC_PASS: str = ''
     GOWA_TIMEOUT: int = 20
+    # WhatsApp numbers that get the admin role when they log in (bootstrap the
+    # back-office without a shell). Any format: 07..., +225..., 225...
+    ADMIN_PHONES: list[str] = []
 
     # Shop. Every amount is an integer number of FCFA.
     DELIVERY_FEE: int = 1500
@@ -248,6 +256,14 @@ class Settings(BaseSettings):
         'confirm_password',
         'code',  # WhatsApp OTP
     ]
+
+    @model_validator(mode='after')
+    def _sync_cookie_lifetime(self) -> 'Settings':
+        # A class-level default would freeze the 90-day value even when
+        # TOKEN_REFRESH_EXPIRE_SECONDS is overridden from the environment.
+        if not self.COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS:
+            self.COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS = self.TOKEN_REFRESH_EXPIRE_SECONDS
+        return self
 
     @model_validator(mode='after')
     def _enforce_production_safety(self) -> 'Settings':

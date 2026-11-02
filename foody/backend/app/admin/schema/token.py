@@ -17,6 +17,7 @@ class ConnectedUserInfo(SchemaBase):
     x_id: str
     profile_image: dict | None = None
     full_name: str | None = None
+    pseudo: str | None = None
     firstname: str | None = None
     lastname: str | None = None
     phone: str | None = None

@@ -71,9 +71,12 @@ export function Navbar() {
                     <Link
                         href={hydrated && user ? "/mon-compte" : "/auth"}
                         aria-label="Mon compte"
-                        className="flex size-11 items-center justify-center rounded-full text-cocoa transition hover:bg-honey"
+                        className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-cocoa transition hover:bg-honey"
                     >
                         <User className="size-5" />
+                        {hydrated && user?.pseudo && (
+                            <span className="hidden max-w-32 truncate text-sm font-semibold lg:inline">{user.pseudo}</span>
+                        )}
                     </Link>
                     <Link
                         href="/panier"

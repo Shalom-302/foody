@@ -15,10 +15,10 @@
 # /api/v1, /admin/api/v1 (API) and /media (uploaded photos, GLB models) over the
 # internal network.
 #
-# First deploy, once the stack is up (container names are shown by Dokploy):
+# First admin: set ADMIN_PHONES=["07XXXXXXXX"] in the Dokploy Environment and log
+# in on the shop with that WhatsApp number; manage the others from /admin/equipe.
+# Demo catalogue (optional), once the stack is up:
 #   docker exec -w /app <api-container> python -m backend.cli seed-catalog
-#   docker exec -w /app <api-container> python -m backend.cli promote-admin --phone 07XXXXXXXX
-# (log in once on the shop with that WhatsApp number before promoting it).
 
 services:
   api:
@@ -57,6 +57,9 @@ services:
       - GOWA_URL=${GOWA_URL:-http://shalom-gowa:3080}
       - GOWA_BASIC_USER=${GOWA_BASIC_USER:-}
       - GOWA_BASIC_PASS=${GOWA_BASIC_PASS:-}
+      # WhatsApp numbers that become admins when they log in, e.g. ["0788016204"].
+      # Further admins are then managed from /admin/equipe.
+      - ADMIN_PHONES=${ADMIN_PHONES:-[]}
       # Shop settings (amounts in FCFA).
       - DELIVERY_FEE=${DELIVERY_FEE:-1500}
       - FREE_DELIVERY_THRESHOLD=${FREE_DELIVERY_THRESHOLD:-0}
