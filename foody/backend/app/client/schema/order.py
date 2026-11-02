@@ -21,7 +21,8 @@ class CreateOrderParam(SchemaBase):
     customer_name: str = Field(min_length=2, max_length=120)
     # Defaults to the account's WhatsApp number.
     customer_phone: str | None = Field(default=None, max_length=25)
-    delivery_method: DeliveryMethod
+    # FOODY delivers every order to the customer's door (no pickup).
+    delivery_method: DeliveryMethod = DeliveryMethod.DELIVERY
     delivery_address: str | None = Field(default=None, max_length=300)
     delivery_commune: str | None = Field(default=None, max_length=60)
     delivery_instructions: str | None = Field(default=None, max_length=500)
@@ -35,6 +36,8 @@ class CreateOrderParam(SchemaBase):
 
     @model_validator(mode='after')
     def _delivery_fields(self) -> Self:
+        if self.delivery_method != DeliveryMethod.DELIVERY:
+            raise ValueError('Nous livrons toutes les commandes à domicile.')
         if self.delivery_method == DeliveryMethod.DELIVERY:
             if not (self.delivery_address and self.delivery_address.strip()):
                 raise ValueError("L'adresse de livraison est obligatoire.")

@@ -113,19 +113,6 @@ export default function AdminSettingsPage() {
                 </div>
             </section>
 
-            <section className="mt-4 rounded-3xl bg-white p-5 shadow-soft sm:p-6">
-                <h2 className="font-display text-lg font-semibold">Retrait sur place</h2>
-                <label className="mt-4 block text-sm font-medium">
-                    Adresse de retrait <span className="font-normal text-mist">(montrée au client qui choisit le retrait)</span>
-                    <input
-                        maxLength={300}
-                        value={form.pickup_address ?? ""}
-                        onChange={(e) => setForm({ ...form, pickup_address: e.target.value })}
-                        placeholder="Riviera 2, à côté de la pharmacie…"
-                        className={field}
-                    />
-                </label>
-            </section>
         </form>
     );
 }

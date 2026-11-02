@@ -78,7 +78,7 @@ export default function CartPage() {
                         <div className="flex justify-between"><dt className="text-cocoa/70">Sous-total</dt><dd className="font-medium">{formatFCFA(subtotal)}</dd></div>
                         <div className="flex justify-between">
                             <dt className="text-cocoa/70">Livraison</dt>
-                            <dd className="font-medium">{free ? "Offerte" : `${formatFCFA(deliveryFee)} (retrait gratuit)`}</dd>
+                            <dd className="font-medium">{free ? "Offerte" : formatFCFA(deliveryFee)}</dd>
                         </div>
                         <div className="flex justify-between border-t border-cocoa/10 pt-3 text-base">
                             <dt className="font-semibold">Total estimé</dt>

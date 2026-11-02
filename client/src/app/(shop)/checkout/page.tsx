@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bike, Lock, Store } from "lucide-react";
+import { Bike, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import { formatFCFA, formatPhone, PAYMENT_METHOD_LABEL } from "@/lib/format";
 import { cn } from "@/lib/utils/cn";
 import { orderApi } from "@/services/foody";
 import { cartSubtotal, useCartStore } from "@/store/cart";
-import type { DeliveryMethod, PaymentMethod } from "@/types/foody";
+import type { PaymentMethod } from "@/types/foody";
 
 const field =
     "mt-2 h-12 w-full rounded-2xl border border-cocoa/15 bg-white px-4 text-base outline-none focus:border-sun focus:ring-2 focus:ring-sun/30";
@@ -27,7 +27,6 @@ export default function CheckoutPage() {
 
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
-    const [method, setMethod] = useState<DeliveryMethod>("delivery");
     const [address, setAddress] = useState("");
     const [commune, setCommune] = useState("");
     const [instructions, setInstructions] = useState("");
@@ -45,9 +44,9 @@ export default function CheckoutPage() {
                 items: lines.map((l) => ({ product_id: l.productId, quantity: l.quantity })),
                 customer_name: name.trim(),
                 customer_phone: phone.trim() || undefined,
-                delivery_method: method,
-                delivery_address: method === "delivery" ? address.trim() : undefined,
-                delivery_commune: method === "delivery" ? commune : undefined,
+                delivery_method: "delivery",
+                delivery_address: address.trim(),
+                delivery_commune: commune,
                 delivery_instructions: instructions.trim() || undefined,
                 payment_method: payment,
             }),
@@ -74,9 +73,9 @@ export default function CheckoutPage() {
 
     const subtotal = cartSubtotal(lines);
     const freeFrom = options?.free_delivery_threshold ?? 0;
-    const deliveryFee = method === "pickup" || (freeFrom && subtotal >= freeFrom) ? 0 : options?.delivery_fee ?? 0;
+    const deliveryFee = freeFrom && subtotal >= freeFrom ? 0 : options?.delivery_fee ?? 0;
     const canSubmit =
-        name.trim().length >= 2 && (method === "pickup" || (address.trim().length > 0 && commune.length > 0));
+        name.trim().length >= 2 && address.trim().length > 0 && commune.length > 0;
 
     return (
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 md:px-6 md:pt-10">
@@ -106,26 +105,26 @@ export default function CheckoutPage() {
                     </section>
 
                     <section className="rounded-3xl bg-white p-5 shadow-soft sm:p-6">
-                        <h2 className="font-display text-lg font-semibold">Mode de récupération</h2>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            <Choice active={method === "delivery"} onClick={() => setMethod("delivery")} icon={<Bike className="size-5" />} title="Livraison" text={`À Abidjan · ${formatFCFA(options?.delivery_fee ?? 0)}`} />
-                            <Choice active={method === "pickup"} onClick={() => setMethod("pickup")} icon={<Store className="size-5" />} title="Retrait" text={options?.pickup_address ?? "Gratuit, adresse envoyée sur WhatsApp"} />
+                        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+                            <Bike className="size-5" /> Livraison chez vous
+                        </h2>
+                        <p className="mt-1 text-sm text-mist">
+                            Nous livrons à domicile dans {options?.communes.length ?? "plusieurs"} communes d&apos;Abidjan
+                            {options ? ` · ${deliveryFee ? formatFCFA(deliveryFee) : "livraison offerte"}` : ""}.
+                        </p>
+                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                            <label className="block text-sm font-medium">
+                                Commune
+                                <select required value={commune} onChange={(e) => setCommune(e.target.value)} className={cn(field, "cursor-pointer")}>
+                                    <option value="" disabled>Choisir…</option>
+                                    {options?.communes.map((c) => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </label>
+                            <label className="block text-sm font-medium sm:col-span-2">
+                                Adresse de livraison
+                                <input required maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" placeholder="Quartier, rue, repère…" className={field} />
+                            </label>
                         </div>
-                        {method === "delivery" && (
-                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <label className="block text-sm font-medium">
-                                    Commune
-                                    <select required value={commune} onChange={(e) => setCommune(e.target.value)} className={cn(field, "cursor-pointer")}>
-                                        <option value="" disabled>Choisir…</option>
-                                        {options?.communes.map((c) => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </label>
-                                <label className="block text-sm font-medium sm:col-span-2">
-                                    Adresse de livraison
-                                    <input required maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" placeholder="Quartier, rue, repère…" className={field} />
-                                </label>
-                            </div>
-                        )}
                         <label className="mt-4 block text-sm font-medium">
                             Instructions <span className="font-normal text-mist">(facultatif)</span>
                             <textarea maxLength={500} rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Code portail, horaire préféré…" className={cn(field, "h-auto py-3")} />
