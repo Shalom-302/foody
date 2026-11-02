@@ -1,0 +1,103 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./typography.css";
+
+@plugin "@tailwindcss/typography";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant label (& [data-label]);
+@custom-variant focus-input-within (&:has(input:focus));
+
+/* FOODY Miniardise identity (cf. foody.md § 2). Usable as bg-cream, text-cocoa... */
+@theme {
+    --color-cream: #fffdf5;   /* Blanc crème : fond principal */
+    --color-butter: #fde9a8;  /* Jaune pastel : sections secondaires */
+    --color-sun: #f4c94e;     /* Jaune soleil : boutons et accents */
+    --color-sun-dark: #e2b028;
+    --color-honey: #fff6d9;   /* Jaune doux : cartes et arrière-plans */
+    --color-cocoa: #493d26;   /* Brun profond : titres */
+    --color-mist: #888888;    /* Gris doux : textes secondaires */
+    --color-hibiscus: #9b1d3a;
+    --color-leaf: #5f8a3a;
+
+    --shadow-soft: 0 1px 2px rgb(73 61 38 / 0.04), 0 8px 24px -12px rgb(73 61 38 / 0.18);
+    --shadow-lift: 0 2px 4px rgb(73 61 38 / 0.05), 0 18px 40px -18px rgb(73 61 38 / 0.28);
+}
+
+@utility scrollbar-hide {
+    /* For Webkit-based browsers (Chrome, Safari and Opera) */
+    &::-webkit-scrollbar {
+        display: none;
+        -webkit-appearance: none;
+    }
+
+    /* For IE, Edge and Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+@utility transition-inherit-all {
+    transition-property: inherit;
+    transition-duration: inherit;
+    transition-timing-function: inherit;
+}
+
+html,
+body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-variant-ligatures: contextual;
+    font-variant-ligatures: contextual;
+    -webkit-font-kerning: normal;
+    font-kerning: normal;
+    background-color: #fffdf5;
+    color: #493d26;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-display);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Default border color */
+*,
+*::before,
+*::after {
+    border-color: var(--color-border-secondary);
+}
+
+/* Hide the default expand arrow on Safari.  */
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Hide default arrows from number inputs. */
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Hide the default clear button (X) from search inputs. */
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}

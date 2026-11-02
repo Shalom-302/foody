@@ -1,0 +1,147 @@
+# Production compose for Dokploy: pulls the prebuilt images from GHCR (built by
+# .github/workflows/build.yml) instead of building on the VPS. Same setup as
+# SignalLab / shaapi.
+#
+# Image names follow the GitHub repo: ghcr.io/<owner>/<repo> (API) and
+# ghcr.io/<owner>/<repo>-web (client). Override FOODY_IMAGE if the repo is not
+# shalom-302/foody.
+#
+# Set the secrets in the Dokploy "Environment" panel. In prod the API REFUSES to
+# boot with the dev defaults, so TOKEN_SECRET_KEY, OPERA_LOG_ENCRYPT_SECRET_KEY,
+# POSTGRES_PASSWORD, MINIO_SECRET_KEY and PUBLIC_DOMAIN are mandatory.
+#
+# In Dokploy, point the public domain at service `web`, port 3000. The API and
+# MinIO have no public route: the browser calls the web origin, which proxies
+# /api/v1, /admin/api/v1 (API) and /media (uploaded photos, GLB models) over the
+# internal network.
+#
+# First deploy, once the stack is up (container names are shown by Dokploy):
+#   docker exec -w /app <api-container> python -m backend.cli seed-catalog
+#   docker exec -w /app <api-container> python -m backend.cli promote-admin --phone 07XXXXXXXX
+# (log in once on the shop with that WhatsApp number before promoting it).
+
+services:
+  api:
+    image: ${FOODY_IMAGE:-ghcr.io/shalom-302/foody}:latest
+    pull_policy: always  # :latest is mutable: always fetch the fresh CI build
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-prod}
+      # The schema is fully described by the Alembic history, applied by the
+      # entrypoint (`alembic upgrade head`) at every start.
+      - DB_AUTO_CREATE=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans Dokploy Environment}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE:-foody}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-foodyadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY manquant dans Dokploy Environment (8 caracteres min)}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-foody}
+      # Upload URLs: https://<domain>/media/<bucket>/<file>, served by the web /media proxy.
+      - MINIO_CLOUD_URL=https://${PUBLIC_DOMAIN}/media
+      # ⚠️ MANDATORY (forgeable JWTs otherwise):
+      - TOKEN_SECRET_KEY=${TOKEN_SECRET_KEY:?TOKEN_SECRET_KEY manquant dans Dokploy Environment}
+      - OPERA_LOG_ENCRYPT_SECRET_KEY=${OPERA_LOG_ENCRYPT_SECRET_KEY:?OPERA_LOG_ENCRYPT_SECRET_KEY manquant dans Dokploy Environment}
+      # Host header guard: the web proxy calls http://foody-api:8000.
+      - TRUSTED_HOSTS=["foody-api","${PUBLIC_DOMAIN:?PUBLIC_DOMAIN manquant dans Dokploy Environment}"]
+      - CORS_ALLOWED_ORIGINS=["https://${PUBLIC_DOMAIN}"]
+      # Refresh cookie: first-party on the web origin, sent over HTTPS only.
+      - COOKIE_SECURE=true
+      - COOKIE_SAMESITE=lax
+      # WhatsApp OTP login (gowa, same gateway as SignalLab / shaapi). Without it
+      # customers cannot log in, so it has to be reachable.
+      - GOWA_URL=${GOWA_URL:-http://shalom-gowa:3080}
+      - GOWA_BASIC_USER=${GOWA_BASIC_USER:-}
+      - GOWA_BASIC_PASS=${GOWA_BASIC_PASS:-}
+      # Shop settings (amounts in FCFA).
+      - DELIVERY_FEE=${DELIVERY_FEE:-1500}
+      - FREE_DELIVERY_THRESHOLD=${FREE_DELIVERY_THRESHOLD:-0}
+      - PICKUP_ADDRESS=${PICKUP_ADDRESS:-}
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    # Unique alias: Dokploy also attaches services to the shared dokploy-network,
+    # where a bare "api" can resolve to ANOTHER project's api container.
+    networks:
+      foody:
+        aliases: [foody-api]
+      # WhatsApp gateway (gowa) network, shared with shaapi / SignalLab, so the
+      # API can send login OTPs via http://shalom-gowa:3080.
+      whatsapp-shared-network: {}
+
+  web:
+    image: ${FOODY_IMAGE:-ghcr.io/shalom-302/foody}-web:latest
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - API_INTERNAL_URL=http://foody-api:8000
+      - MINIO_INTERNAL_URL=http://foody-minio:9000
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-foody}
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    networks: [foody]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans Dokploy Environment}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-foody}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DATABASE:-foody}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [foody]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [foody]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-foodyadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY manquant dans Dokploy Environment (8 caracteres min)}
+    volumes:
+      - miniodata:/data
+    networks:
+      foody:
+        aliases: [foody-minio]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+
+networks:
+  foody:
+  # Created once on the VPS (already there if shaapi / SignalLab use it):
+  #   docker network create whatsapp-shared-network
+  whatsapp-shared-network:
+    external: true

@@ -1,0 +1,16 @@
+@import "./theme.css";
+
+
+
+    --color-brand-25: rgb(251 251 251);
+    --color-brand-50: rgb(248 248 248);
+    --color-brand-100: rgb(243 243 243);
+    --color-brand-200: rgb(232 232 232);
+    --color-brand-300: rgb(187 187 187);
+    --color-brand-400: rgb(120 120 120);
+    --color-brand-500: rgb(30 30 30);
+    --color-brand-600: rgb(25 21 22);
+    --color-brand-700: rgb(21 15 16);
+    --color-brand-800: rgb(17 9 11);
+    --color-brand-900: rgb(14 5 8);
+    --color-brand-950: rgb(12 3 6);

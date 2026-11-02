@@ -1,0 +1,17 @@
+{
+  "name": "FOODY Miniardise",
+  "short_name": "FOODY",
+  "description": "Jus artisanaux et mini-pâtisseries à Abidjan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFDF5",
+  "theme_color": "#F4C94E",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "lang": "fr"
+}

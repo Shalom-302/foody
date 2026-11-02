@@ -1,0 +1,20 @@
+# Local credentials and tooling — never commit
+.venv/
+**/.env
+**/.env.local
+!**/.env.template
+!**/.env.example
+
+# Build output
+**/node_modules/
+**/.next/
+**/.next-*/
+**/__pycache__/
+*.py[cod]
+*.tsbuildinfo
+
+# Runtime logs
+foody/backend/log/*.log
+
+# Previous template code kept locally for reference, not shipped
+client/_archive/
