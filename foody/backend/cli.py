@@ -82,8 +82,8 @@ async def seed_catalog(if_empty: bool = False) -> int:
     """Create the initial FOODY categories and a few demo products (idempotent).
 
     With ``if_empty`` (run by the container entrypoint at every start) nothing
-    happens as soon as one category exists, so edits made in /admin are never
-    touched.
+    happens as soon as one product exists, so edits made in /admin are never
+    touched. Categories already created by hand are kept (matched by slug).
     """
     from sqlalchemy import func, select
 
@@ -93,8 +93,8 @@ async def seed_catalog(if_empty: bool = False) -> int:
 
     if if_empty:
         async with async_db_session() as db:
-            if await db.scalar(select(func.count(Category.id))):
-                print("[skip] Catalogue already populated.")
+            if await db.scalar(select(func.count(Product.id))):
+                print("[skip] Catalogue already has products.")
                 return 0
 
     categories = [
@@ -216,7 +216,7 @@ def main() -> int:
     pa.add_argument("--phone", required=True, help="WhatsApp number, e.g. 0788016204 or +2250788016204.")
 
     sc = sub.add_parser("seed-catalog", help="Create the initial categories and demo products")
-    sc.add_argument("--if-empty", action="store_true", help="Do nothing if any category already exists.")
+    sc.add_argument("--if-empty", action="store_true", help="Do nothing if any product already exists.")
 
     args = parser.parse_args()
     if args.command == "create-admin":
