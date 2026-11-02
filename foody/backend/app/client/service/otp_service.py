@@ -95,6 +95,10 @@ async def _send_whatsapp(phone: str, message: str) -> None:
     except httpx.HTTPError as exc:
         log.error(f'gowa send failed for {jid}: {exc}')
         raise errors.ServerError(msg="Envoi du code WhatsApp impossible pour le moment.") from exc
+    if resp.status_code in (401, 403):
+        # Our credentials, not the customer's number: never blame the number.
+        log.error(f'gowa refused our credentials ({resp.status_code}): check GOWA_BASIC_USER / GOWA_BASIC_PASS')
+        raise errors.ServerError(msg="Envoi du code WhatsApp impossible pour le moment.")
     if resp.status_code >= 400:
         log.error(f'gowa send {resp.status_code} for {jid}: {resp.text[:200]}')
         raise _Unreachable(jid)
