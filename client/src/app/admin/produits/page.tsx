@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Camera, ImagePlus, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { FoodyButton } from "@/components/foody/button";
+import { FoodyButton, foodyButton } from "@/components/foody/button";
 import { ProductVisual } from "@/components/products/product-visual";
 import { apiErrorMessage } from "@/lib/api/client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -55,7 +55,12 @@ export default function AdminProductsPage() {
     return (
         <div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-2xl font-bold">Produits</h1>
+                <div>
+                    <h1 className="text-2xl font-bold">Produits</h1>
+                    <p className="mt-1 text-sm text-mist">
+                        Cliquez sur une photo pour la remplacer. Tapez un prix ou un stock puis Entrée : c&apos;est enregistré.
+                    </p>
+                </div>
                 <div className="flex gap-2">
                     <FoodyButton variant="outline" onClick={() => setShowCategories(true)}>Catégories</FoodyButton>
                     <FoodyButton onClick={() => setEditing("new")} disabled={!categories?.length}>
@@ -83,18 +88,28 @@ export default function AdminProductsPage() {
                                 <tr key={p.id} className={cn(!p.is_active && "opacity-60")}>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="size-12 shrink-0 overflow-hidden rounded-xl">
-                                                <ProductVisual imageUrl={p.image_url} categorySlug={p.category?.slug} name={p.name} />
-                                            </div>
+                                            <PhotoCell product={p} onChanged={refresh} />
                                             <div>
                                                 <p className="font-semibold">{p.name}</p>
                                                 <p className="text-xs text-mist">{p.category?.name} {p.volume && `· ${p.volume}`}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 tabular-nums">{formatFCFA(p.price)}</td>
                                     <td className="px-4 py-3">
-                                        <StockInput value={p.stock} onCommit={(stock) => quickUpdate.mutate({ id: p.id, input: { stock } })} />
+                                        <NumberCell
+                                            value={p.price}
+                                            suffix="FCFA"
+                                            label={`Prix de ${p.name}`}
+                                            onCommit={(price) =>
+                                                quickUpdate.mutate(
+                                                    { id: p.id, input: { price } },
+                                                    { onSuccess: () => toast.success(`${p.name} : ${formatFCFA(price)}`) },
+                                                )
+                                            }
+                                        />
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <NumberCell value={p.stock} label={`Stock de ${p.name}`} warnZero onCommit={(stock) => quickUpdate.mutate({ id: p.id, input: { stock } })} />
                                     </td>
                                     <td className="px-4 py-3">
                                         <Toggle checked={p.is_active} label="En ligne" onChange={(is_active) => quickUpdate.mutate({ id: p.id, input: { is_active } })} />
@@ -103,9 +118,9 @@ export default function AdminProductsPage() {
                                         <Toggle checked={p.is_featured} label="Populaire" onChange={(is_featured) => quickUpdate.mutate({ id: p.id, input: { is_featured } })} />
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button type="button" onClick={() => setEditing(p)} aria-label={`Modifier ${p.name}`} className="cursor-pointer rounded-full p-2 hover:bg-honey">
-                                            <Pencil className="size-4" />
-                                        </button>
+                                        <FoodyButton size="sm" variant="outline" onClick={() => setEditing(p)} aria-label={`Modifier ${p.name}`}>
+                                            <Pencil /> Modifier
+                                        </FoodyButton>
                                     </td>
                                 </tr>
                             ))}
@@ -147,23 +162,86 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     );
 }
 
-function StockInput({ value, onCommit }: { value: number; onCommit: (v: number) => void }) {
+/** Inline number edit: type, then Enter or click away to save. */
+function NumberCell({
+    value,
+    onCommit,
+    label,
+    suffix,
+    warnZero,
+}: {
+    value: number;
+    onCommit: (v: number) => void;
+    label: string;
+    suffix?: string;
+    warnZero?: boolean;
+}) {
     const [v, setV] = useState(String(value));
+    useEffect(() => setV(String(value)), [value]);
     const commit = () => {
-        const n = Math.max(0, Math.floor(Number(v)));
+        const n = Math.max(0, Math.floor(Number(v || 0)));
         if (Number.isFinite(n) && n !== value) onCommit(n);
         else setV(String(value));
     };
     return (
-        <input
-            inputMode="numeric"
-            value={v}
-            onChange={(e) => setV(e.target.value.replace(/\D/g, ""))}
-            onBlur={commit}
-            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-            aria-label="Stock"
-            className={cn("h-9 w-20 rounded-lg border px-2 text-sm tabular-nums outline-none focus:border-sun", value === 0 ? "border-red-200 bg-red-50" : "border-cocoa/10")}
-        />
+        <label className={cn("inline-flex h-9 items-center rounded-lg border bg-white pr-2 focus-within:border-sun", warnZero && value === 0 ? "border-red-200 bg-red-50" : "border-cocoa/10")}>
+            <input
+                inputMode="numeric"
+                value={v}
+                onChange={(e) => setV(e.target.value.replace(/\D/g, ""))}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                aria-label={label}
+                className={cn("h-full bg-transparent px-2 text-sm tabular-nums outline-none", suffix ? "w-20" : "w-16")}
+            />
+            {suffix && <span className="text-xs text-mist">{suffix}</span>}
+        </label>
+    );
+}
+
+/** Thumbnail that replaces the main photo in one click. */
+function PhotoCell({ product, onChanged }: { product: Product; onChanged: () => void }) {
+    const input = useRef<HTMLInputElement>(null);
+    const [busy, setBusy] = useState(false);
+    const change = async (file: File) => {
+        setBusy(true);
+        try {
+            const { url } = await adminApi.upload(file);
+            await adminApi.updateProduct(product.id, { image_url: url });
+            toast.success(`Photo de ${product.name} mise à jour`);
+            onChanged();
+        } catch (e) {
+            toast.error(apiErrorMessage(e, "Envoi de la photo impossible."));
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <button
+            type="button"
+            onClick={() => input.current?.click()}
+            disabled={busy}
+            title="Changer la photo"
+            aria-label={`Changer la photo de ${product.name}`}
+            className="group relative size-14 shrink-0 cursor-pointer overflow-hidden rounded-xl"
+        >
+            <ProductVisual imageUrl={product.image_url} categorySlug={product.category?.slug} name={product.name} />
+            <span className={cn("absolute inset-0 flex items-center justify-center bg-cocoa/55 text-cream transition-opacity", busy ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100")}>
+                {busy ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
+            </span>
+            <input
+                ref={input}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                className="sr-only"
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) change(file);
+                    e.target.value = "";
+                }}
+            />
+        </button>
     );
 }
 
@@ -290,23 +368,61 @@ function ProductForm({ product, categories, onClose, onSaved }: { product: Produ
                 </label>
 
                 <div>
-                    <p className="text-sm font-medium">Images</p>
+                    <p className="text-sm font-medium">Photo principale</p>
+                    <p className="text-xs text-mist">Celle des cartes de la boutique. Format carré ou portrait conseillé.</p>
+                    <div className="mt-2 flex items-center gap-4">
+                        <div className="size-28 shrink-0 overflow-hidden rounded-2xl bg-white shadow-soft">
+                            <ProductVisual imageUrl={form.image_url} categorySlug={categories.find((c) => c.id === form.category_id)?.slug} name={form.name || "Produit"} />
+                        </div>
+                        <div className="flex flex-col items-start gap-2">
+                            <label className={cn(foodyButton({ variant: "primary", size: "sm" }), uploading === "image" && "pointer-events-none opacity-60")}>
+                                {uploading === "image" ? <Loader2 className="animate-spin" /> : <Camera />}
+                                {form.image_url ? "Changer la photo" : "Ajouter une photo"}
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/avif"
+                                    className="sr-only"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) upload(file, "image");
+                                        e.target.value = "";
+                                    }}
+                                />
+                            </label>
+                            {form.image_url && (
+                                <button type="button" onClick={() => set("image_url", null)} className="cursor-pointer text-xs font-semibold text-mist underline hover:text-cocoa">
+                                    Retirer
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <p className="text-sm font-medium">Galerie <span className="font-normal text-mist">(photos en plus sur la fiche produit)</span></p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                        {[form.image_url, ...form.gallery].filter(Boolean).map((src, i) => (
-                            <div key={src!} className="relative size-20 overflow-hidden rounded-xl bg-white">
+                        {form.gallery.map((src) => (
+                            <div key={src} className="relative size-20 overflow-hidden rounded-xl bg-white">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={src!} alt="" className="size-full object-cover" />
-                                {i === 0 && <span className="absolute inset-x-0 bottom-0 bg-cocoa/70 py-0.5 text-center text-[10px] text-cream">Principale</span>}
+                                <img src={src} alt="" className="size-full object-cover" />
+                                <button
+                                    type="button"
+                                    title="Mettre en photo principale"
+                                    onClick={() =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            image_url: src,
+                                            gallery: [...(f.image_url ? [f.image_url] : []), ...f.gallery.filter((g) => g !== src)],
+                                        }))
+                                    }
+                                    className="absolute inset-x-0 bottom-0 cursor-pointer bg-cocoa/70 py-0.5 text-[10px] text-cream opacity-0 transition hover:opacity-100 focus:opacity-100"
+                                >
+                                    Principale
+                                </button>
                                 <button
                                     type="button"
                                     aria-label="Retirer l'image"
-                                    onClick={() =>
-                                        setForm((f) =>
-                                            i === 0
-                                                ? { ...f, image_url: f.gallery[0] ?? null, gallery: f.gallery.slice(1) }
-                                                : { ...f, gallery: f.gallery.filter((g) => g !== src) },
-                                        )
-                                    }
+                                    onClick={() => setForm((f) => ({ ...f, gallery: f.gallery.filter((g) => g !== src) }))}
                                     className="absolute top-1 right-1 cursor-pointer rounded-full bg-white/90 p-1"
                                 >
                                     <X className="size-3" />
@@ -314,15 +430,15 @@ function ProductForm({ product, categories, onClose, onSaved }: { product: Produ
                             </div>
                         ))}
                         <label className="flex size-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-cocoa/15 text-xs text-mist hover:border-sun">
-                            <ImagePlus className="size-5" />
-                            {uploading === "image" || uploading === "gallery" ? "Envoi…" : "Ajouter"}
+                            {uploading === "gallery" ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+                            {uploading === "gallery" ? "Envoi…" : "Ajouter"}
                             <input
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp,image/avif"
                                 className="sr-only"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
-                                    if (file) upload(file, form.image_url ? "gallery" : "image");
+                                    if (file) upload(file, "gallery");
                                     e.target.value = "";
                                 }}
                             />

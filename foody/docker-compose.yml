@@ -14,7 +14,8 @@ services:
       # Point the app at the compose service names (overrides .env localhost)
       - POSTGRES_HOST=foody_postgres
       - REDIS_HOST=foody_redis
-      - MINIO_ENDPOINT=foody_minio:9000
+      # Service name, not the container name: S3 rejects "_" in hostnames.
+      - MINIO_ENDPOINT=minio:9000
     depends_on:
       postgres:
         condition: service_healthy

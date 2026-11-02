@@ -162,5 +162,8 @@ async def admin_upload(request: Request, file: Annotated[UploadFile, File()]) ->
     from backend.common.cloud_storage import mstorage  # connects to MinIO on import
 
     folder = 'models' if ext == 'glb' else 'products'
-    result = await to_thread.run_sync(mstorage.upload_file, content, f'{folder}/{uuid.uuid4().hex}.{ext}')
+    content_type = 'model/gltf-binary' if ext == 'glb' else (file.content_type or 'image/jpeg')
+    result = await to_thread.run_sync(
+        mstorage.upload_file, content, f'{folder}/{uuid.uuid4().hex}.{ext}', content_type
+    )
     return response_base.success(request=request, data={'url': result['file_url']})

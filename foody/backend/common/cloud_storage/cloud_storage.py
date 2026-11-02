@@ -167,14 +167,15 @@ class MinioStorage(CloudStorage):
         buckets = self.client.list_buckets()
         return [bucket.name for bucket in buckets]
 
-    def upload_file(self, file_content: bytes, filename: str) -> str:
+    def upload_file(self, file_content: bytes, filename: str, content_type: str = "application/octet-stream") -> str:
         gen_filename = self.generate_filename(filename)
         self.client.put_object(
             bucket_name=self.bucket_name,
             object_name=gen_filename,
             data=io.BytesIO(file_content),
-            length=-1,
-            part_size=100 * 1024 * 1024,
+            length=len(file_content),
+            # Served as-is to browsers (with nosniff): images need their real type.
+            content_type=content_type,
         )
         file_url = f"{settings.MINIO_CLOUD_URL}/{self.bucket_name}/{gen_filename}"
         return {"file_url": file_url, "filename": gen_filename}
