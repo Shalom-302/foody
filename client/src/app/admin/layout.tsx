@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { FoodyLogo } from "@/components/foody/logo";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { cn } from "@/lib/utils/cn";
+import { BackedByKortex } from "@/components/foody/backed-by-kortex";
 
 const NAV = [
     { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
@@ -25,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <div className="min-h-dvh bg-cream md:flex">
-            <aside className="border-b border-butter bg-white md:sticky md:top-0 md:h-dvh md:w-60 md:shrink-0 md:border-r md:border-b-0">
+            <aside className="relative border-b border-butter bg-white md:sticky md:top-0 md:h-dvh md:w-60 md:shrink-0 md:border-r md:border-b-0">
                 <div className="flex items-center justify-between px-4 py-4 md:block md:px-5 md:py-6">
                     <FoodyLogo />
                     <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-mist hover:text-cocoa md:mt-3">
@@ -49,6 +50,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         );
                     })}
                 </nav>
+                <div className="hidden px-5 py-6 text-cocoa md:absolute md:bottom-0 md:block">
+                    <BackedByKortex size="sm" />
+                </div>
             </aside>
             <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>

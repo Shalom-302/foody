@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FoodyMark } from "@/components/foody/logo";
 import { BRAND } from "@/lib/brand";
+import { BackedByKortex } from "@/components/foody/backed-by-kortex";
 
 export function Footer() {
     return (
@@ -34,8 +35,9 @@ export function Footer() {
                     </ul>
                 </div>
             </div>
-            <div className="border-t border-cream/10 py-5 text-center text-xs text-cream/50">
-                © {new Date().getFullYear()} {BRAND.full} · Abidjan, Côte d&apos;Ivoire
+            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 border-t border-cream/10 px-4 py-5 text-xs text-cream/50 sm:flex-row md:px-6">
+                <span>© {new Date().getFullYear()} {BRAND.full} · Abidjan, Côte d&apos;Ivoire</span>
+                <BackedByKortex className="text-cream" />
             </div>
         </footer>
     );

@@ -10,6 +10,7 @@ import { apiErrorMessage } from "@/lib/api/client";
 import { formatPhone } from "@/lib/format";
 import { authApi } from "@/services/foody";
 import { useAuthStore } from "@/store/auth";
+import { BackedByKortex } from "@/components/foody/backed-by-kortex";
 
 const CODE_LENGTH = 6;
 // Mirrors backend normalize_pseudo (the API stays the authority).
@@ -214,6 +215,7 @@ export function WhatsappLogin() {
             <p className="mt-6 flex items-center justify-center gap-2 text-xs text-mist">
                 <ShieldCheck className="size-4" /> FOODY ne vous demandera jamais ce code.
             </p>
+            <BackedByKortex className="mx-auto mt-8 text-cocoa" />
         </div>
     );
 }
